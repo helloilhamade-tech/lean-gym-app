@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { usePathname } from 'next/navigation';
 import { Header } from './Header';
 import { BottomNav } from './BottomNav';
 import { QuickActionModal } from './QuickActionModal';
@@ -13,9 +14,12 @@ interface AppLayoutProps {
 }
 
 export function AppLayout({ children }: AppLayoutProps) {
+  const pathname = usePathname();
   const [lang, setLang] = useState<Language>('id');
   const [isQuickActionOpen, setIsQuickActionOpen] = useState(false);
   const [isDbReady, setIsDbReady] = useState(false);
+
+  const isAuthOrOnboarding = pathname === '/login' || pathname === '/onboarding';
 
   useEffect(() => {
     // Check saved language
@@ -43,14 +47,16 @@ export function AppLayout({ children }: AppLayoutProps) {
         <div className="w-full max-w-[430px] min-h-screen bg-background border-x border-surfaceBorder/40 flex flex-col relative shadow-2xl">
           <Header lang={lang} onToggleLang={handleToggleLang} />
 
-          <main className="flex-1 pb-24 px-4 pt-3 overflow-y-auto">
+          <main className={`flex-1 px-4 pt-3 overflow-y-auto ${isAuthOrOnboarding ? 'pb-6' : 'pb-24'}`}>
             {children}
           </main>
 
-          <BottomNav
-            lang={lang}
-            onOpenQuickAction={() => setIsQuickActionOpen(true)}
-          />
+          {!isAuthOrOnboarding && (
+            <BottomNav
+              lang={lang}
+              onOpenQuickAction={() => setIsQuickActionOpen(true)}
+            />
+          )}
 
           <QuickActionModal
             isOpen={isQuickActionOpen}

@@ -13,7 +13,7 @@ export default function HomePage() {
       if (profile) {
         router.replace('/today');
       } else {
-        router.replace('/onboarding');
+        router.replace('/login');
       }
     }
     checkStatus();

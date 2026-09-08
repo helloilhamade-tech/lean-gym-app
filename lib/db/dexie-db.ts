@@ -75,42 +75,47 @@ export class LeanDatabase extends Dexie {
 export const db = new LeanDatabase();
 
 /**
- * Seed database with initial realistic sample data
+ * Initialize system catalog (Exercises & Foods) only, without any sample user data
  */
-export async function initializeDatabaseWithSeedData(forceReset = false) {
+export async function initializeDatabaseWithSeedData(forceDemoReset = false) {
   if (typeof window === 'undefined') return;
 
   const count = await db.exercises.count();
-  if (count > 0 && !forceReset) {
-    return;
+  if (count === 0) {
+    // Only populate system catalog
+    await db.exercises.bulkPut(SEED_EXERCISES);
+    await db.foods.bulkPut(SEED_FOODS);
   }
 
-  if (forceReset) {
-    await db.transaction('rw', db.tables, async () => {
-      for (const table of db.tables) {
-        await table.clear();
-      }
-    });
+  if (forceDemoReset) {
+    await loadSampleDemoData();
   }
+}
 
-  // Populate Exercises
+/**
+ * Explicitly load sample demo user data (Alex Pratama) only when requested
+ */
+export async function loadSampleDemoData() {
+  if (typeof window === 'undefined') return;
+
+  await db.transaction('rw', db.tables, async () => {
+    for (const table of db.tables) {
+      await table.clear();
+    }
+  });
+
+  // Populate system catalogs
   await db.exercises.bulkPut(SEED_EXERCISES);
-
-  // Populate Foods
   await db.foods.bulkPut(SEED_FOODS);
 
-  // Populate User Profile & Goal & Program
+  // Populate sample user
   await db.profiles.put(SAMPLE_USER_PROFILE);
   await db.goals.put(SAMPLE_USER_GOAL);
   await db.programs.put(SAMPLE_USER_PROGRAM);
-
-  // Populate Measurements
   await db.measurements.bulkPut(SAMPLE_MEASUREMENTS);
-
-  // Populate Exercise History
   await db.exerciseHistory.bulkPut(SAMPLE_EXERCISE_HISTORY);
 
-  // Populate Today's Workout
+  // Populate sample workout
   await db.workouts.put(SAMPLE_TODAY_WORKOUT);
   for (const we of SAMPLE_TODAY_WORKOUT_EXERCISES) {
     await db.workoutExercises.put({
@@ -123,7 +128,6 @@ export async function initializeDatabaseWithSeedData(forceReset = false) {
       rest_sec: we.rest_sec,
     });
 
-    // Populate default empty sets for today's workout
     for (let i = 1; i <= we.target_sets; i++) {
       const prev = we.previousSets[i - 1] || we.previousSets[0] || { weightKg: 15, reps: 8 };
       await db.sets.put({
@@ -139,10 +143,7 @@ export async function initializeDatabaseWithSeedData(forceReset = false) {
     }
   }
 
-  // Populate Today's Meals
   await db.meals.bulkPut(SAMPLE_TODAY_MEALS);
-
-  // Populate Today's Daily Log
   await db.dailyLogs.put(SAMPLE_TODAY_DAILY_LOG);
 }
 
