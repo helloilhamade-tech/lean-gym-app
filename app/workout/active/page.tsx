@@ -14,6 +14,10 @@ import {
   Flame,
   CheckCircle2,
   AlertCircle,
+  ArrowRightLeft,
+  Activity,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
 import { db } from '@/lib/db/dexie-db';
 import {
@@ -22,6 +26,7 @@ import {
   SetEntry,
   Exercise,
   ExerciseHistory,
+  MuscleGroup,
 } from '@/lib/db/schema';
 import {
   calculateEst1RM,
@@ -32,6 +37,9 @@ import {
 } from '@/lib/domain/progressive-overload';
 import { RestTimer } from '@/components/workout/RestTimer';
 import { Language, t } from '@/lib/domain/i18n';
+import { ExerciseIllustration } from '@/components/ui/ExerciseIllustration';
+import { BodyAnatomyVisualizer } from '@/components/ui/BodyAnatomyVisualizer';
+import { ExerciseSwapModal } from '@/components/workout/ExerciseSwapModal';
 
 interface ActiveExerciseData {
   workoutExercise: WorkoutExercise;
@@ -59,6 +67,33 @@ export default function ActiveWorkoutPage() {
     nextSuggestion: string;
   } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+
+  // Exercise Swap Modal State
+  const [isSwapModalOpen, setIsSwapModalOpen] = useState(false);
+  const [swapTargetExercise, setSwapTargetExercise] = useState<Exercise | null>(null);
+  const [swapTargetWEId, setSwapTargetWEId] = useState<string | null>(null);
+  const [swapTargetIndex, setSwapTargetIndex] = useState<number | null>(null);
+
+  // Body Anatomy Visualizer Collapsible State
+  const [showAnatomy, setShowAnatomy] = useState(false);
+
+  // Active targeted muscles in today's workout
+  const activeMuscles: MuscleGroup[] = Array.from(
+    new Set(exercisesData.map((e) => e.exercise.muscle_group as MuscleGroup))
+  );
+
+  const handleExerciseSwapped = (newExercise: Exercise) => {
+    if (swapTargetIndex !== null) {
+      setExercisesData((prev) => {
+        const next = [...prev];
+        next[swapTargetIndex] = {
+          ...next[swapTargetIndex],
+          exercise: newExercise,
+        };
+        return next;
+      });
+    }
+  };
 
   // Active workout session clock
   useEffect(() => {
@@ -408,7 +443,53 @@ export default function ActiveWorkoutPage() {
         </button>
       </div>
 
-      {/* 2. Exercises List */}
+      {/* 2. Muscle Target Anatomy Preview (Collapsible) */}
+      <div className="bg-card border border-surfaceBorder rounded-2xl overflow-hidden transition-all">
+        <button
+          onClick={() => setShowAnatomy(!showAnatomy)}
+          className="w-full p-3.5 flex items-center justify-between hover:bg-surface/50 text-left transition-colors"
+        >
+          <div className="flex items-center gap-2.5">
+            <div className="w-7 h-7 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center text-primary">
+              <Activity className="w-4 h-4" />
+            </div>
+            <div>
+              <span className="text-xs font-extrabold text-white block">
+                Otot Target Sesi Ini
+              </span>
+              <span className="text-[10px] text-mutedText">
+                {activeMuscles.length > 0
+                  ? activeMuscles.map((m) => m.toUpperCase()).join(' • ')
+                  : 'Fokus Tubuh'}
+              </span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-1.5 text-xs text-primary font-bold">
+            <span>{showAnatomy ? 'Tutup' : 'Lihat Visual'}</span>
+            {showAnatomy ? (
+              <ChevronUp className="w-4 h-4" />
+            ) : (
+              <ChevronDown className="w-4 h-4" />
+            )}
+          </div>
+        </button>
+
+        {showAnatomy && (
+          <div className="p-3 pt-0 border-t border-surfaceBorder/60 flex flex-col items-center">
+            <p className="text-[11px] text-mutedText text-center mb-2">
+              Bagian tubuh yang menyala hijau adalah target stimulasi latihan hari ini.
+            </p>
+            <BodyAnatomyVisualizer
+              activeMuscles={activeMuscles}
+              size="sm"
+              showLabels={false}
+            />
+          </div>
+        )}
+      </div>
+
+      {/* 3. Exercises List */}
       <div className="space-y-4">
         {exercisesData.map((exData, exIdx) => {
           return (
@@ -417,29 +498,54 @@ export default function ActiveWorkoutPage() {
               className="bg-surface border border-surfaceBorder rounded-2xl p-4 space-y-3 transition-all"
             >
               {/* Exercise Title & Target Specs */}
-              <div className="flex items-start justify-between">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-mono font-bold text-mutedText">
-                      #{exIdx + 1}
-                    </span>
-                    <h2 className="text-sm font-extrabold text-white">
-                      {lang === 'id' ? (exData.exercise.name_id || exData.exercise.name) : exData.exercise.name}
-                    </h2>
-                    {exData.isPR && (
-                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-warning/20 text-warning text-[10px] font-extrabold">
-                        <Flame className="w-3 h-3 fill-warning" /> PR
-                      </span>
-                    )}
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-xl bg-card border border-surfaceBorder/70 p-1 flex items-center justify-center shrink-0">
+                    <ExerciseIllustration
+                      exerciseId={exData.exercise.id}
+                      name={exData.exercise.name}
+                      muscleGroup={exData.exercise.muscle_group}
+                      size="md"
+                    />
                   </div>
-                  <div className="flex items-center gap-2 text-[10px] text-subtleText mt-0.5">
-                    <span className="capitalize">{exData.exercise.muscle_group}</span>
-                    <span>•</span>
-                    <span>Target: {exData.workoutExercise.target_reps} reps</span>
-                    <span>•</span>
-                    <span>Rest: {exData.workoutExercise.rest_sec}s</span>
+                  <div>
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="text-xs font-mono font-bold text-mutedText">
+                        #{exIdx + 1}
+                      </span>
+                      <h2 className="text-sm font-extrabold text-white">
+                        {lang === 'id' ? (exData.exercise.name_id || exData.exercise.name) : exData.exercise.name}
+                      </h2>
+                      {exData.isPR && (
+                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-warning/20 text-warning text-[10px] font-extrabold">
+                          <Flame className="w-3 h-3 fill-warning" /> PR
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2 text-[10px] text-subtleText mt-0.5">
+                      <span className="capitalize text-primary font-bold">{exData.exercise.muscle_group}</span>
+                      <span>•</span>
+                      <span>Target: {exData.workoutExercise.target_reps} reps</span>
+                      <span>•</span>
+                      <span>Rest: {exData.workoutExercise.rest_sec}s</span>
+                    </div>
                   </div>
                 </div>
+
+                {/* In-Workout Swap Button (Inspired by Buffro Image 2) */}
+                <button
+                  onClick={() => {
+                    setSwapTargetExercise(exData.exercise);
+                    setSwapTargetWEId(exData.workoutExercise.id);
+                    setSwapTargetIndex(exIdx);
+                    setIsSwapModalOpen(true);
+                  }}
+                  className="py-1 px-2.5 rounded-lg bg-card hover:bg-surfaceBorder border border-surfaceBorder text-slate-300 hover:text-white text-[11px] font-semibold flex items-center gap-1 shrink-0 active:scale-95 transition-all"
+                  title="Cari alternatif mesin/alat lain"
+                >
+                  <ArrowRightLeft className="w-3 h-3 text-accent" />
+                  <span>Ganti</span>
+                </button>
               </div>
 
               {/* AT-01: Previous Performance Hint Banner */}
@@ -634,6 +740,20 @@ export default function ActiveWorkoutPage() {
           </div>
         </div>
       )}
+
+      {/* 5. In-Workout Exercise Swap Sheet (Inspired by Buffro Image 2) */}
+      <ExerciseSwapModal
+        isOpen={isSwapModalOpen}
+        onClose={() => {
+          setIsSwapModalOpen(false);
+          setSwapTargetExercise(null);
+          setSwapTargetWEId(null);
+          setSwapTargetIndex(null);
+        }}
+        currentExercise={swapTargetExercise || undefined}
+        workoutExerciseId={swapTargetWEId || undefined}
+        onSwapped={handleExerciseSwapped}
+      />
     </div>
   );
 }

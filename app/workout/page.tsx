@@ -33,7 +33,7 @@ export default function WorkoutPage() {
     const savedLang = (localStorage.getItem('lean_lang') as Language) || 'id';
     setLang(savedLang);
 
-    const p = await db.programs.where('active').equals(1).first();
+    const p = await db.programs.filter((prog) => Boolean(prog.active)).first();
     setProgram(p || null);
 
     const wList = await db.workouts.toArray();
@@ -78,24 +78,49 @@ export default function WorkoutPage() {
       </div>
 
       {/* 2. FEATURE HIGHLIGHT: Direktori Anatomi Otot & Mesin Gym */}
-      <div
-        onClick={() => router.push('/workout/muscle-guide')}
-        className="bg-gradient-to-r from-accent/15 via-card to-surface border border-accent/30 rounded-2xl p-4 cursor-pointer hover:border-accent active:scale-[0.99] transition-all relative overflow-hidden"
-      >
-        <div className="flex items-center justify-between">
-          <div className="space-y-1">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-accent px-2 py-0.5 rounded-full bg-accent/15">
-              Fitur Baru
-            </span>
-            <h2 className="text-sm font-extrabold text-white">
-              Direktori Otot & Mesin Gym
-            </h2>
-            <p className="text-[11px] text-mutedText">
-              Pelajari anatomi otot, mesin gym yang melatihnya, dan tips biomekanik.
-            </p>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div
+          onClick={() => router.push('/workout/muscle-guide')}
+          className="bg-gradient-to-r from-accent/15 via-card to-surface border border-accent/30 rounded-2xl p-4 cursor-pointer hover:border-accent active:scale-[0.99] transition-all relative overflow-hidden"
+        >
+          <div className="flex items-center justify-between">
+            <div className="space-y-1">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-accent px-2 py-0.5 rounded-full bg-accent/15">
+                Fitur Visual
+              </span>
+              <h2 className="text-sm font-extrabold text-white">
+                Direktori Otot & Mesin Gym
+              </h2>
+              <p className="text-[11px] text-mutedText">
+                Anatomi otot tubuh, mesin gym, dan tips biomekanik.
+              </p>
+            </div>
+            <div className="w-10 h-10 rounded-xl bg-accent text-black flex items-center justify-center font-bold shrink-0 ml-2">
+              <BookOpen className="w-5 h-5 stroke-[2.2px]" />
+            </div>
           </div>
-          <div className="w-10 h-10 rounded-xl bg-accent text-black flex items-center justify-center font-bold">
-            <BookOpen className="w-5 h-5 stroke-[2.2px]" />
+        </div>
+
+        {/* FEATURE: Program Customizer (PPL / Upper-Lower Weekly Builder) */}
+        <div
+          onClick={() => router.push('/workout/program-editor')}
+          className="bg-gradient-to-r from-primary/15 via-card to-surface border border-primary/30 rounded-2xl p-4 cursor-pointer hover:border-primary active:scale-[0.99] transition-all relative overflow-hidden"
+        >
+          <div className="flex items-center justify-between">
+            <div className="space-y-1">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-primary px-2 py-0.5 rounded-full bg-primary/15">
+                Kustom Program
+              </span>
+              <h2 className="text-sm font-extrabold text-white">
+                Editor Program Mingguan
+              </h2>
+              <p className="text-[11px] text-mutedText">
+                Susun jadwal PPL/Upper-Lower, set reps, & swap alat.
+              </p>
+            </div>
+            <div className="w-10 h-10 rounded-xl bg-primary text-black flex items-center justify-center font-bold shrink-0 ml-2">
+              <Sparkles className="w-5 h-5 stroke-[2.2px]" />
+            </div>
           </div>
         </div>
       </div>
@@ -138,19 +163,28 @@ export default function WorkoutPage() {
         </button>
 
         <button
-          onClick={() => setIsRoutineEditorOpen(true)}
+          onClick={() => router.push('/workout/program-editor')}
           className="py-2.5 px-3 rounded-xl bg-surface border border-surfaceBorder hover:border-primary text-slate-200 text-xs font-semibold flex items-center justify-center gap-1.5 active:scale-95 transition-all"
         >
           <Edit3 className="w-3.5 h-3.5 text-primary" />
-          <span>+ Rutinitas Baru</span>
+          <span>Atur Program Mingguan</span>
         </button>
       </div>
 
       {/* 5. Program Weekly Routine */}
       <section aria-label="Program split" className="space-y-2">
-        <h3 className="text-xs font-bold uppercase tracking-wider text-mutedText px-1">
-          {lang === 'id' ? 'Jadwal Mingguan' : 'Weekly Routine'}
-        </h3>
+        <div className="flex items-center justify-between px-1">
+          <h3 className="text-xs font-bold uppercase tracking-wider text-mutedText">
+            {lang === 'id' ? 'Jadwal Mingguan' : 'Weekly Routine'}
+          </h3>
+          <button
+            onClick={() => router.push('/workout/program-editor')}
+            className="text-[11px] font-bold text-primary hover:underline flex items-center gap-1"
+          >
+            <span>Kustomisasi</span>
+            <ChevronRight className="w-3.5 h-3.5" />
+          </button>
+        </div>
         <div className="space-y-2">
           {[
             { name: 'Upper Body A', focus: 'Chest, Back, Arms', days: 'Senin / Day 1', active: true },

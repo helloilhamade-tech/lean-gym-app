@@ -22,7 +22,9 @@ import {
   MuscleExerciseGuide,
 } from '@/lib/domain/muscle-directory';
 import { db } from '@/lib/db/dexie-db';
-import { WorkoutExercise, SetEntry, Exercise } from '@/lib/db/schema';
+import { WorkoutExercise, SetEntry, Exercise, MuscleGroup } from '@/lib/db/schema';
+import { BodyAnatomyVisualizer } from '@/components/ui/BodyAnatomyVisualizer';
+import { ExerciseIllustration } from '@/components/ui/ExerciseIllustration';
 
 export default function MuscleGuidePage() {
   const router = useRouter();
@@ -31,6 +33,36 @@ export default function MuscleGuidePage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [addedExerciseId, setAddedExerciseId] = useState<string | null>(null);
   const [isAdding, setIsAdding] = useState(false);
+
+  // Map MuscleCategory to MuscleGroup[] for Visualizer highlights
+  const getActiveMusclesForVisualizer = (cat: MuscleCategory): MuscleGroup[] => {
+    switch (cat) {
+      case 'chest':
+        return ['chest'];
+      case 'back':
+        return ['back'];
+      case 'shoulders':
+        return ['shoulders'];
+      case 'arms':
+        return ['biceps', 'triceps'];
+      case 'legs':
+        return ['quads', 'hamstrings', 'glutes', 'calves'];
+      case 'core':
+        return ['core'];
+      default:
+        return ['chest'];
+    }
+  };
+
+  // Handle interactive tap on Body Anatomy SVG
+  const handleMuscleVisualizerClick = (m: MuscleGroup) => {
+    if (m === 'chest') setSelectedMuscle('chest');
+    else if (m === 'biceps' || m === 'triceps') setSelectedMuscle('arms');
+    else if (m === 'back') setSelectedMuscle('back');
+    else if (m === 'shoulders') setSelectedMuscle('shoulders');
+    else if (m === 'quads' || m === 'hamstrings' || m === 'glutes' || m === 'calves') setSelectedMuscle('legs');
+    else if (m === 'core') setSelectedMuscle('core');
+  };
 
   const muscleInfo = MUSCLE_BREAKDOWN[selectedMuscle];
 
@@ -189,6 +221,19 @@ export default function MuscleGuidePage() {
         ))}
       </div>
 
+      {/* Visual Anatomy Heatmap (Interactive Front & Back Body) */}
+      <div className="flex flex-col items-center justify-center py-1">
+        <BodyAnatomyVisualizer
+          activeMuscles={getActiveMusclesForVisualizer(selectedMuscle)}
+          interactive={true}
+          onMuscleClick={handleMuscleVisualizerClick}
+          size="md"
+        />
+        <span className="text-[10px] text-mutedText mt-2">
+          Ketuk otot pada anatomi tubuh untuk memilih kategori otot
+        </span>
+      </div>
+
       {/* 3. Sub-Muscle Breakdown Card */}
       <section aria-label="Muscle anatomy" className="bg-surface border border-surfaceBorder rounded-2xl p-4 space-y-3">
         <div>
@@ -269,19 +314,28 @@ export default function MuscleGuidePage() {
                 key={guide.id}
                 className="bg-surface border border-surfaceBorder hover:border-surfaceBorder/80 rounded-2xl p-4 space-y-3 shadow-sm transition-all"
               >
-                {/* Header info */}
-                <div className="flex items-start justify-between">
-                  <div>
-                    <div className="flex items-center gap-1.5 mb-1">
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary/15 text-primary">
-                        {guide.subMuscleId}
-                      </span>
-                      <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-card border border-surfaceBorder text-mutedText">
-                        {guide.equipmentNameId}
-                      </span>
+                {/* Header info with ExerciseIllustration */}
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-xl bg-card border border-surfaceBorder/70 p-1 flex items-center justify-center shrink-0">
+                      <ExerciseIllustration
+                        name={guide.name}
+                        muscleGroup={guide.muscleCategory}
+                        size="md"
+                      />
                     </div>
-                    <h3 className="text-sm font-extrabold text-white">{guide.nameId}</h3>
-                    <p className="text-[10px] text-subtleText font-mono">{guide.name}</p>
+                    <div>
+                      <div className="flex items-center gap-1.5 mb-1">
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary/15 text-primary">
+                          {guide.subMuscleId}
+                        </span>
+                        <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-card border border-surfaceBorder text-mutedText">
+                          {guide.equipmentNameId}
+                        </span>
+                      </div>
+                      <h3 className="text-sm font-extrabold text-white">{guide.nameId}</h3>
+                      <p className="text-[10px] text-subtleText font-mono">{guide.name}</p>
+                    </div>
                   </div>
                 </div>
 
