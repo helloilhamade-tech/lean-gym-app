@@ -26,13 +26,16 @@ import {
 } from '@/lib/db/schema';
 import { calculateNutritionTargets } from '@/lib/domain/nutrition';
 import { SEED_EXERCISES } from '@/lib/db/seed-data';
+import { useAuth } from '@/lib/firebase/auth-context';
+import { syncLocalToCloud } from '@/lib/firebase/sync';
 
 export default function OnboardingPage() {
   const router = useRouter();
+  const { user } = useAuth();
   const [step, setStep] = useState(1);
 
-  // Form states
-  const [name, setName] = useState('Alex');
+  // Form states: prefill name from Google account if available
+  const [name, setName] = useState(user?.displayName || user?.email?.split('@')[0] || '');
   const [goalType, setGoalType] = useState<GoalType>('recomposition');
   const [heightCm, setHeightCm] = useState(176);
   const [weightKg, setWeightKg] = useState(79);
@@ -77,10 +80,10 @@ export default function OnboardingPage() {
   const handleFinishOnboarding = async () => {
     setIsSaving(true);
     try {
-      const profileId = `usr-${Date.now()}`;
+      const profileId = user?.uid || `usr-${Date.now()}`;
       const newProfile: Profile = {
         id: profileId,
-        name: name.trim() || 'Atlet',
+        name: name.trim() || user?.displayName || user?.email?.split('@')[0] || 'Atlet',
         height_cm: heightCm,
         weight_kg: weightKg,
         activity_level: activityLevel,
@@ -186,6 +189,10 @@ export default function OnboardingPage() {
         sleep_hours: sleepHours,
         readiness: 'good',
       });
+
+      if (user?.uid) {
+        syncLocalToCloud(user.uid).catch(console.error);
+      }
 
       router.replace('/today');
     } finally {
