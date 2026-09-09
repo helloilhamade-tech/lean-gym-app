@@ -15,12 +15,18 @@ import {
   ChevronRight,
   ShieldCheck,
   AlertCircle,
+  Calendar as CalendarIcon,
+  Sliders,
+  RefreshCw,
 } from 'lucide-react';
 import { db } from '@/lib/db/dexie-db';
 import { Profile, Goal, Workout, DailyLog, Meal, Recommendation } from '@/lib/db/schema';
 import { calculate7DayWeightAverage, generateDailyRecommendations } from '@/lib/domain/recommendations';
 import { calculateMacroSummary } from '@/lib/domain/nutrition';
 import { Language, t } from '@/lib/domain/i18n';
+import { WorkoutFocusModal } from '@/components/workout/WorkoutFocusModal';
+import { WorkoutCalendarModal } from '@/components/workout/WorkoutCalendarModal';
+import { generateAndSaveFocusWorkout, WorkoutFocus } from '@/lib/domain/workout-generator';
 
 export default function TodayPage() {
   const router = useRouter();
@@ -38,6 +44,11 @@ export default function TodayPage() {
   }>({ rollingAverageKg: null, latestWeightKg: null, deltaKg: null, trend: 'stable' });
   const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+
+  // Focus Questionnaire & Calendar Modals State
+  const [isFocusModalOpen, setIsFocusModalOpen] = useState(false);
+  const [isCalendarModalOpen, setIsCalendarModalOpen] = useState(false);
+  const [focusModalDate, setFocusModalDate] = useState<string | undefined>(undefined);
 
   const loadDashboardData = useCallback(async () => {
     try {
@@ -187,47 +198,136 @@ export default function TodayPage() {
         </div>
       </section>
 
-      {/* 2. Today's Workout Card (Hero Action) */}
-      <section aria-label="Today workout" className="relative overflow-hidden bg-gradient-to-br from-card to-surface border border-surfaceBorder rounded-3xl p-5 shadow-lg">
-        <div className="flex items-start justify-between">
-          <div className="space-y-1">
-            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-primary/15 border border-primary/20 text-primary text-[10px] font-bold uppercase tracking-wider">
-              <Dumbbell className="w-3 h-3" />
-              <span>{lang === 'id' ? 'Latihan Hari Ini' : "Today's Workout"}</span>
+      {/* 2. Today's Workout Card (Hero Action or Focus Questionnaire) */}
+      {todayWorkout ? (
+        <section aria-label="Today workout" className="relative overflow-hidden bg-gradient-to-br from-card to-surface border border-surfaceBorder rounded-3xl p-5 shadow-lg space-y-4">
+          <div className="flex items-start justify-between">
+            <div className="space-y-1">
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-primary/15 border border-primary/20 text-primary text-[10px] font-bold uppercase tracking-wider">
+                <Dumbbell className="w-3 h-3" />
+                <span>{lang === 'id' ? 'Jadwal Hari Ini' : "Today's Workout"}</span>
+              </div>
+              <h2 className="text-lg font-extrabold text-white tracking-tight mt-1">
+                {todayWorkout.name}
+              </h2>
+              <div className="flex items-center gap-3 text-xs text-mutedText pt-0.5">
+                <span className="flex items-center gap-1">
+                  <Clock className="w-3.5 h-3.5" />
+                  ~{todayWorkout.duration_min || 45} min
+                </span>
+                <span>•</span>
+                <span>{todayWorkout.notes || (lang === 'id' ? 'Menu Terjadwal' : 'Custom Session')}</span>
+              </div>
             </div>
-            <h2 className="text-xl font-extrabold text-white tracking-tight mt-1">
-              {todayWorkout?.name || (lang === 'id' ? 'Upper Body A' : 'Upper Body A')}
-            </h2>
-            <div className="flex items-center gap-3 text-xs text-mutedText pt-0.5">
-              <span className="flex items-center gap-1">
-                <Clock className="w-3.5 h-3.5" />
-                ~{todayWorkout?.duration_min || 55} min
+
+            <div className="w-11 h-11 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary shrink-0">
+              <Dumbbell className="w-5 h-5 stroke-[2px]" />
+            </div>
+          </div>
+
+          {/* Primary CTA */}
+          <div>
+            <button
+              onClick={() => router.push('/workout/active')}
+              className="w-full py-3.5 px-4 rounded-2xl bg-primary hover:bg-primary-hover text-black font-extrabold text-sm flex items-center justify-center gap-2 shadow-lg shadow-primary/25 active:scale-[0.98] transition-all"
+            >
+              <span>
+                {todayWorkout.status === 'in_progress'
+                  ? t('resume_workout', lang)
+                  : t('start_workout', lang)}
               </span>
-              <span>•</span>
-              <span>5 {t('exercises', lang).toLowerCase()}</span>
+              <ChevronRight className="w-4 h-4 stroke-[3px]" />
+            </button>
+          </div>
+
+          {/* Secondary Actions: Change Focus & Calendar Sync */}
+          <div className="grid grid-cols-2 gap-2 pt-1 border-t border-surfaceBorder/60">
+            <button
+              onClick={() => {
+                setFocusModalDate(undefined);
+                setIsFocusModalOpen(true);
+              }}
+              className="py-2 px-3 rounded-xl bg-card hover:bg-surfaceBorder border border-surfaceBorder text-slate-300 hover:text-white text-xs font-semibold flex items-center justify-center gap-1.5 active:scale-95 transition-all"
+            >
+              <Sliders className="w-3.5 h-3.5 text-primary" />
+              <span>Ganti Fokus</span>
+            </button>
+
+            <button
+              onClick={() => setIsCalendarModalOpen(true)}
+              className="py-2 px-3 rounded-xl bg-card hover:bg-surfaceBorder border border-surfaceBorder text-slate-300 hover:text-white text-xs font-semibold flex items-center justify-center gap-1.5 active:scale-95 transition-all"
+            >
+              <CalendarIcon className="w-3.5 h-3.5 text-accent" />
+              <span>Kalender & Sync</span>
+            </button>
+          </div>
+        </section>
+      ) : (
+        /* Questionnaire / Focus Selector Card when no workout is set */
+        <section aria-label="Today focus prompt" className="relative overflow-hidden bg-gradient-to-br from-card via-surface to-card border border-primary/30 rounded-3xl p-5 shadow-lg space-y-3.5">
+          <div className="flex items-start justify-between">
+            <div className="space-y-1">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-primary px-2.5 py-0.5 rounded-full bg-primary/10">
+                Pilih Target Hari Ini
+              </span>
+              <h2 className="text-base font-extrabold text-white tracking-tight mt-1">
+                Apa Fokus Latihanmu Hari Ini?
+              </h2>
+              <p className="text-xs text-mutedText leading-relaxed">
+                Tentukan target ototmu sebelum sistem membuat jadwal latihan yang dipersonalisasi.
+              </p>
+            </div>
+
+            <div className="w-10 h-10 rounded-2xl bg-primary/15 text-primary flex items-center justify-center shrink-0">
+              <Sparkles className="w-5 h-5" />
             </div>
           </div>
 
-          <div className="w-12 h-12 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary">
-            <Dumbbell className="w-6 h-6 stroke-[2px]" />
+          {/* Quick Focus Chips */}
+          <div className="grid grid-cols-3 gap-2 pt-1">
+            {[
+              { id: 'upper' as WorkoutFocus, label: 'Upper Body' },
+              { id: 'lower' as WorkoutFocus, label: 'Lower Body' },
+              { id: 'push' as WorkoutFocus, label: 'Push Day' },
+              { id: 'pull' as WorkoutFocus, label: 'Pull Day' },
+              { id: 'legs' as WorkoutFocus, label: 'Legs & Abs' },
+              { id: 'rest' as WorkoutFocus, label: 'Rest Day' },
+            ].map((f) => (
+              <button
+                key={f.id}
+                onClick={async () => {
+                  await generateAndSaveFocusWorkout({ focus: f.id });
+                  loadDashboardData();
+                }}
+                className="py-2 px-1 rounded-xl bg-card hover:bg-surfaceBorder border border-surfaceBorder hover:border-primary text-slate-200 text-xs font-bold text-center active:scale-95 transition-all"
+              >
+                {f.label}
+              </button>
+            ))}
           </div>
-        </div>
 
-        {/* Primary CTA */}
-        <div className="mt-5">
-          <button
-            onClick={() => router.push('/workout/active')}
-            className="w-full py-3.5 px-4 rounded-2xl bg-primary hover:bg-primary-hover text-black font-extrabold text-sm flex items-center justify-center gap-2 shadow-lg shadow-primary/25 active:scale-[0.98] transition-all"
-          >
-            <span>
-              {todayWorkout?.status === 'in_progress'
-                ? t('resume_workout', lang)
-                : t('start_workout', lang)}
-            </span>
-            <ChevronRight className="w-4 h-4 stroke-[3px]" />
-          </button>
-        </div>
-      </section>
+          <div className="flex gap-2 pt-1">
+            <button
+              onClick={() => {
+                setFocusModalDate(undefined);
+                setIsFocusModalOpen(true);
+              }}
+              className="flex-1 py-2.5 rounded-xl bg-primary text-black font-extrabold text-xs flex items-center justify-center gap-1.5 shadow-md shadow-primary/20 active:scale-95 transition-all"
+            >
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>Konsultasi Lengkap</span>
+            </button>
+
+            <button
+              onClick={() => setIsCalendarModalOpen(true)}
+              className="py-2.5 px-3 rounded-xl bg-card hover:bg-surfaceBorder border border-surfaceBorder text-slate-200 text-xs font-bold flex items-center justify-center gap-1.5 active:scale-95 transition-all"
+            >
+              <CalendarIcon className="w-3.5 h-3.5 text-accent" />
+              <span>Kalender</span>
+            </button>
+          </div>
+        </section>
+      )}
 
       {/* 3. Nutrition & Activity Quick Overview (Side-by-side) */}
       <div className="grid grid-cols-2 gap-3">
@@ -351,6 +451,29 @@ export default function TodayPage() {
           </div>
         ))}
       </section>
+
+      {/* Modals */}
+      <WorkoutFocusModal
+        isOpen={isFocusModalOpen}
+        onClose={() => {
+          setIsFocusModalOpen(false);
+          setFocusModalDate(undefined);
+        }}
+        targetDateStr={focusModalDate}
+        onWorkoutGenerated={() => {
+          loadDashboardData();
+        }}
+      />
+
+      <WorkoutCalendarModal
+        isOpen={isCalendarModalOpen}
+        onClose={() => setIsCalendarModalOpen(false)}
+        onOpenFocusModalForDate={(dateStr) => {
+          setFocusModalDate(dateStr);
+          setIsCalendarModalOpen(false);
+          setIsFocusModalOpen(true);
+        }}
+      />
     </div>
   );
 }

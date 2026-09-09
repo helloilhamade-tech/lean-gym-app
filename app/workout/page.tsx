@@ -12,12 +12,16 @@ import {
   Sparkles,
   BookOpen,
   Edit3,
+  Calendar as CalendarIcon,
+  Sliders,
 } from 'lucide-react';
 import { db } from '@/lib/db/dexie-db';
 import { Workout, Program, ExerciseHistory, Exercise } from '@/lib/db/schema';
 import { Language, t } from '@/lib/domain/i18n';
 import { CustomExerciseModal } from '@/components/workout/CustomExerciseModal';
 import { RoutineEditorModal } from '@/components/workout/RoutineEditorModal';
+import { WorkoutFocusModal } from '@/components/workout/WorkoutFocusModal';
+import { WorkoutCalendarModal } from '@/components/workout/WorkoutCalendarModal';
 
 export default function WorkoutPage() {
   const router = useRouter();
@@ -27,6 +31,9 @@ export default function WorkoutPage() {
   const [historyRecords, setHistoryRecords] = useState<Array<ExerciseHistory & { exerciseName?: string }>>([]);
   const [isCustomExerciseOpen, setIsCustomExerciseOpen] = useState(false);
   const [isRoutineEditorOpen, setIsRoutineEditorOpen] = useState(false);
+  const [isFocusModalOpen, setIsFocusModalOpen] = useState(false);
+  const [isCalendarModalOpen, setIsCalendarModalOpen] = useState(false);
+  const [focusModalDate, setFocusModalDate] = useState<string | undefined>(undefined);
   const [isLoading, setIsLoading] = useState(true);
 
   const loadData = useCallback(async () => {
@@ -77,14 +84,14 @@ export default function WorkoutPage() {
         </button>
       </div>
 
-      {/* 2. FEATURE HIGHLIGHT: Direktori Anatomi Otot & Mesin Gym */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      {/* 2. FEATURE HIGHLIGHTS */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
         <div
           onClick={() => router.push('/workout/muscle-guide')}
-          className="bg-gradient-to-r from-accent/15 via-card to-surface border border-accent/30 rounded-2xl p-4 cursor-pointer hover:border-accent active:scale-[0.99] transition-all relative overflow-hidden"
+          className="bg-gradient-to-r from-accent/15 via-card to-surface border border-accent/30 rounded-2xl p-3.5 cursor-pointer hover:border-accent active:scale-[0.99] transition-all relative overflow-hidden"
         >
           <div className="flex items-center justify-between">
-            <div className="space-y-1">
+            <div className="space-y-0.5">
               <span className="text-[10px] font-bold uppercase tracking-wider text-accent px-2 py-0.5 rounded-full bg-accent/15">
                 Fitur Visual
               </span>
@@ -92,74 +99,99 @@ export default function WorkoutPage() {
                 Direktori Otot & Mesin Gym
               </h2>
               <p className="text-[11px] text-mutedText">
-                Anatomi otot tubuh, mesin gym, dan tips biomekanik.
+                Anatomi otot tubuh & tips alat gym.
               </p>
             </div>
-            <div className="w-10 h-10 rounded-xl bg-accent text-black flex items-center justify-center font-bold shrink-0 ml-2">
-              <BookOpen className="w-5 h-5 stroke-[2.2px]" />
+            <div className="w-9 h-9 rounded-xl bg-accent text-black flex items-center justify-center font-bold shrink-0 ml-2">
+              <BookOpen className="w-4 h-4 stroke-[2.2px]" />
             </div>
           </div>
         </div>
 
-        {/* FEATURE: Program Customizer (PPL / Upper-Lower Weekly Builder) */}
+        {/* FEATURE: Kalender Latihan & Sinkronisasi */}
         <div
-          onClick={() => router.push('/workout/program-editor')}
-          className="bg-gradient-to-r from-primary/15 via-card to-surface border border-primary/30 rounded-2xl p-4 cursor-pointer hover:border-primary active:scale-[0.99] transition-all relative overflow-hidden"
+          onClick={() => setIsCalendarModalOpen(true)}
+          className="bg-gradient-to-r from-emerald-500/15 via-card to-surface border border-emerald-500/30 rounded-2xl p-3.5 cursor-pointer hover:border-emerald-500 active:scale-[0.99] transition-all relative overflow-hidden"
         >
           <div className="flex items-center justify-between">
-            <div className="space-y-1">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-primary px-2 py-0.5 rounded-full bg-primary/15">
-                Kustom Program
+            <div className="space-y-0.5">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-400 px-2 py-0.5 rounded-full bg-emerald-500/15">
+                Kalender & Sync
               </span>
               <h2 className="text-sm font-extrabold text-white">
-                Editor Program Mingguan
+                Kalender Latihan
               </h2>
               <p className="text-[11px] text-mutedText">
-                Susun jadwal PPL/Upper-Lower, set reps, & swap alat.
+                Sync ke Google Calendar & HP (.ics).
               </p>
             </div>
-            <div className="w-10 h-10 rounded-xl bg-primary text-black flex items-center justify-center font-bold shrink-0 ml-2">
-              <Sparkles className="w-5 h-5 stroke-[2.2px]" />
+            <div className="w-9 h-9 rounded-xl bg-emerald-400 text-black flex items-center justify-center font-bold shrink-0 ml-2">
+              <CalendarIcon className="w-4 h-4 stroke-[2.2px]" />
             </div>
           </div>
         </div>
       </div>
 
       {/* 3. Today's Workout CTA Banner */}
-      <div
-        onClick={() => router.push('/workout/active')}
-        className="bg-card border border-primary/30 rounded-2xl p-4 cursor-pointer hover:border-primary active:scale-[0.99] transition-all relative overflow-hidden"
-      >
-        <div className="flex items-center justify-between">
+      <div className="bg-card border border-primary/30 rounded-2xl p-4 transition-all relative overflow-hidden space-y-3">
+        <div
+          onClick={() => router.push('/workout/active')}
+          className="flex items-center justify-between cursor-pointer"
+        >
           <div>
             <span className="text-[10px] font-bold uppercase tracking-wider text-primary px-2 py-0.5 rounded-full bg-primary/10">
               {lang === 'id' ? 'Sesi Hari Ini' : "Today's Session"}
             </span>
             <h2 className="text-base font-extrabold text-white mt-1.5">
-              Upper Body A (Chest & Back Focus)
+              {workouts.find((w) => w.scheduled_at === new Date().toISOString().split('T')[0])?.name || 'Upper Body A (Chest & Back Focus)'}
             </h2>
             <div className="flex items-center gap-2 text-xs text-mutedText mt-1">
               <span className="flex items-center gap-1">
-                <Clock className="w-3.5 h-3.5" /> 55 min
+                <Clock className="w-3.5 h-3.5" /> 50 min
               </span>
               <span>•</span>
-              <span>5 {t('exercises', lang).toLowerCase()}</span>
+              <span>Menu Latihan Harian</span>
             </div>
           </div>
           <div className="w-10 h-10 rounded-xl bg-primary text-black flex items-center justify-center font-bold">
             <ChevronRight className="w-5 h-5 stroke-[2.5px]" />
           </div>
         </div>
+
+        {/* Quick Consultation & Calendar row */}
+        <div className="flex gap-2 pt-1 border-t border-surfaceBorder/60">
+          <button
+            onClick={() => {
+              setFocusModalDate(undefined);
+              setIsFocusModalOpen(true);
+            }}
+            className="flex-1 py-1.5 px-2.5 rounded-xl bg-surface hover:bg-surfaceBorder border border-surfaceBorder text-slate-200 text-xs font-semibold flex items-center justify-center gap-1.5 active:scale-95 transition-all"
+          >
+            <Sliders className="w-3.5 h-3.5 text-primary" />
+            <span>Pilih / Ganti Fokus</span>
+          </button>
+
+          <button
+            onClick={() => setIsCalendarModalOpen(true)}
+            className="flex-1 py-1.5 px-2.5 rounded-xl bg-surface hover:bg-surfaceBorder border border-surfaceBorder text-slate-200 text-xs font-semibold flex items-center justify-center gap-1.5 active:scale-95 transition-all"
+          >
+            <CalendarIcon className="w-3.5 h-3.5 text-accent" />
+            <span>Sync Kalender</span>
+          </button>
+        </div>
       </div>
 
-      {/* 4. Action Buttons: Buat Gerakan Kustom & Buat Rutinitas Baru */}
+      {/* 4. Action Buttons Grid */}
       <div className="grid grid-cols-2 gap-2">
         <button
-          onClick={() => setIsCustomExerciseOpen(true)}
+          onClick={() => {
+            setFocusModalDate(undefined);
+            setIsFocusModalOpen(true);
+          }}
           className="py-2.5 px-3 rounded-xl bg-surface border border-surfaceBorder hover:border-primary text-slate-200 text-xs font-semibold flex items-center justify-center gap-1.5 active:scale-95 transition-all"
         >
-          <Plus className="w-3.5 h-3.5 text-primary" />
-          <span>+ Gerakan Kustom</span>
+          <Sparkles className="w-3.5 h-3.5 text-primary" />
+          <span>Konsultasi Fokus</span>
         </button>
 
         <button
@@ -263,6 +295,26 @@ export default function WorkoutPage() {
         isOpen={isRoutineEditorOpen}
         onClose={() => setIsRoutineEditorOpen(false)}
         onSaved={() => loadData()}
+      />
+
+      <WorkoutFocusModal
+        isOpen={isFocusModalOpen}
+        onClose={() => {
+          setIsFocusModalOpen(false);
+          setFocusModalDate(undefined);
+        }}
+        targetDateStr={focusModalDate}
+        onWorkoutGenerated={() => loadData()}
+      />
+
+      <WorkoutCalendarModal
+        isOpen={isCalendarModalOpen}
+        onClose={() => setIsCalendarModalOpen(false)}
+        onOpenFocusModalForDate={(d) => {
+          setFocusModalDate(d);
+          setIsCalendarModalOpen(false);
+          setIsFocusModalOpen(true);
+        }}
       />
     </div>
   );
