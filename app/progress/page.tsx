@@ -18,8 +18,10 @@ import { db } from '@/lib/db/dexie-db';
 import { Measurement, Goal, Profile } from '@/lib/db/schema';
 import { calculate7DayWeightAverage } from '@/lib/domain/recommendations';
 import { classifyBodyFat } from '@/lib/domain/body-fat';
+import { calculateBmi, classifyBmi, calculateIdealWeightRange } from '@/lib/domain/bmi';
 import { Language, t } from '@/lib/domain/i18n';
 import { BodyFatModal } from '@/components/progress/BodyFatModal';
+import { BmiCalculatorModal } from '@/components/progress/BmiCalculatorModal';
 
 export default function ProgressPage() {
   const [lang, setLang] = useState<Language>('id');
@@ -28,6 +30,7 @@ export default function ProgressPage() {
   const [measurements, setMeasurements] = useState<Measurement[]>([]);
   const [isCheckInOpen, setIsCheckInOpen] = useState(false);
   const [isBodyFatOpen, setIsBodyFatOpen] = useState(false);
+  const [isBmiOpen, setIsBmiOpen] = useState(false);
   const [newWeight, setNewWeight] = useState('78.4');
   const [newWaist, setNewWaist] = useState('');
   const [newBodyFat, setNewBodyFat] = useState('');
@@ -138,6 +141,13 @@ export default function ProgressPage() {
     ? classifyBodyFat(latestBf, profile?.gender || 'male')
     : null;
 
+  // Latest BMI & Ideal Weight derivation
+  const currentWeight = measurements[0]?.weight_kg || profile?.weight_kg || 0;
+  const currentHeight = profile?.height_cm || 0;
+  const userBmi = currentHeight > 0 && currentWeight > 0 ? calculateBmi(currentHeight, currentWeight) : null;
+  const bmiClassification = userBmi ? classifyBmi(userBmi, 'asia') : null;
+  const idealWeightRange = currentHeight > 0 ? calculateIdealWeightRange(currentHeight, 'asia') : null;
+
   return (
     <div className="space-y-4 animate-in fade-in duration-200">
       {/* 1. Header & Quick Check-in Button */}
@@ -237,7 +247,67 @@ export default function ProgressPage() {
         </p>
       </section>
 
-      {/* 2b. Body Fat & Fitness Category Card */}
+      {/* 2b. BMI & Ideal Weight Status Card */}
+      <section aria-label="BMI status" className="bg-surface border border-surfaceBorder rounded-3xl p-5 shadow-sm space-y-3">
+        <div className="flex items-start justify-between">
+          <div className="space-y-0.5">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-mutedText block">
+              {lang === 'id' ? 'Indeks Massa Tubuh (BMI)' : 'Body Mass Index (BMI)'}
+            </span>
+            {userBmi ? (
+              <div className="flex items-baseline gap-2 mt-1 flex-wrap">
+                <span className="text-3xl font-black font-mono text-white">
+                  {userBmi.toFixed(1)}
+                  <span className="text-xs font-bold text-mutedText ml-1">kg/m²</span>
+                </span>
+                {bmiClassification && (
+                  <span
+                    className={`text-xs font-black px-2.5 py-0.5 rounded-xl border ${bmiClassification.badgeBg} ${bmiClassification.badgeBorder} ${bmiClassification.badgeText}`}
+                  >
+                    {lang === 'id' ? bmiClassification.categoryLabel : bmiClassification.categoryLabelEn}
+                  </span>
+                )}
+              </div>
+            ) : (
+              <div className="mt-1">
+                <span className="text-sm font-bold text-white block">
+                  {lang === 'id' ? 'Belum Ada Data BMI' : 'No BMI Data Yet'}
+                </span>
+                <span className="text-[11px] text-mutedText">
+                  {lang === 'id'
+                    ? 'Hitung indeks massa tubuh dan ketahui berat badan idealmu'
+                    : 'Calculate BMI to check your category and ideal weight range'}
+                </span>
+              </div>
+            )}
+          </div>
+
+          <button
+            onClick={() => setIsBmiOpen(true)}
+            className="py-2 px-3 rounded-xl bg-card hover:bg-surfaceBorder border border-surfaceBorder text-slate-200 hover:text-white text-xs font-bold flex items-center gap-1.5 active:scale-95 transition-all shrink-0 ml-2"
+          >
+            <Activity className="w-3.5 h-3.5 text-primary" />
+            <span>
+              {userBmi
+                ? (lang === 'id' ? 'Kalkulator BMI' : 'BMI Calc')
+                : (lang === 'id' ? 'Hitung BMI' : 'Calculate BMI')}
+            </span>
+          </button>
+        </div>
+
+        {idealWeightRange && (
+          <div className="flex items-center justify-between pt-2 border-t border-surfaceBorder/60 text-xs">
+            <span className="text-mutedText text-[11px]">
+              {lang === 'id' ? 'Rentang Berat Ideal (Standar Asia):' : 'Ideal Weight Range (Asia-Pacific):'}
+            </span>
+            <span className="font-mono font-bold text-primary text-xs">
+              {idealWeightRange.minKg} – {idealWeightRange.maxKg} kg
+            </span>
+          </div>
+        )}
+      </section>
+
+      {/* 2c. Body Fat & Fitness Category Card */}
       <section aria-label="Body fat status" className="bg-surface border border-surfaceBorder rounded-3xl p-5 shadow-sm space-y-3">
         <div className="flex items-start justify-between">
           <div className="space-y-0.5">
@@ -509,6 +579,16 @@ export default function ProgressPage() {
         onSaved={() => loadData()}
         initialWeight={parseFloat(newWeight) || profile?.weight_kg || 75}
         initialWaist={parseFloat(newWaist) || undefined}
+      />
+
+      {/* BMI Calculator Modal */}
+      <BmiCalculatorModal
+        isOpen={isBmiOpen}
+        onClose={() => setIsBmiOpen(false)}
+        lang={lang}
+        onSaved={() => loadData()}
+        initialHeight={profile?.height_cm}
+        initialWeight={parseFloat(newWeight) || profile?.weight_kg || 70}
       />
     </div>
   );
