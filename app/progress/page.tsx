@@ -11,11 +11,15 @@ import {
   Sparkles,
   Info,
   Trash2,
+  Percent,
+  Activity,
 } from 'lucide-react';
 import { db } from '@/lib/db/dexie-db';
 import { Measurement, Goal, Profile } from '@/lib/db/schema';
 import { calculate7DayWeightAverage } from '@/lib/domain/recommendations';
+import { classifyBodyFat } from '@/lib/domain/body-fat';
 import { Language, t } from '@/lib/domain/i18n';
+import { BodyFatModal } from '@/components/progress/BodyFatModal';
 
 export default function ProgressPage() {
   const [lang, setLang] = useState<Language>('id');
@@ -23,8 +27,10 @@ export default function ProgressPage() {
   const [goal, setGoal] = useState<Goal | null>(null);
   const [measurements, setMeasurements] = useState<Measurement[]>([]);
   const [isCheckInOpen, setIsCheckInOpen] = useState(false);
+  const [isBodyFatOpen, setIsBodyFatOpen] = useState(false);
   const [newWeight, setNewWeight] = useState('78.4');
   const [newWaist, setNewWaist] = useState('');
+  const [newBodyFat, setNewBodyFat] = useState('');
   const [newPhotoUrl, setNewPhotoUrl] = useState('');
   const [notes, setNotes] = useState('');
 
@@ -56,6 +62,7 @@ export default function ProgressPage() {
 
     const profileId = profile?.id || 'usr-demo-01';
     const waist = newWaist ? parseFloat(newWaist) : undefined;
+    const bf = newBodyFat ? parseFloat(newBodyFat) : undefined;
 
     const newEntry: Measurement = {
       id: `meas-${Date.now()}`,
@@ -63,6 +70,7 @@ export default function ProgressPage() {
       measured_at: new Date().toISOString(),
       weight_kg: w,
       waist_cm: waist,
+      body_fat_pct: bf,
       photo_data_url: newPhotoUrl || undefined,
       notes: notes.trim() || undefined,
       created_at: new Date().toISOString(),
@@ -76,6 +84,7 @@ export default function ProgressPage() {
     setIsCheckInOpen(false);
     setNotes('');
     setNewPhotoUrl('');
+    setNewBodyFat('');
     await loadData();
     window.dispatchEvent(new Event('lean_data_changed'));
   };
@@ -119,6 +128,15 @@ export default function ProgressPage() {
   });
 
   const photoEntries = measurements.filter((m) => m.photo_data_url);
+
+  // Latest Body Fat & Classification derivation
+  const latestBfMeasurement = measurements.find(
+    (m) => m.body_fat_pct !== undefined && m.body_fat_pct > 0
+  );
+  const latestBf = latestBfMeasurement?.body_fat_pct;
+  const bfClassification = latestBf
+    ? classifyBodyFat(latestBf, profile?.gender || 'male')
+    : null;
 
   return (
     <div className="space-y-4 animate-in fade-in duration-200">
@@ -219,6 +237,76 @@ export default function ProgressPage() {
         </p>
       </section>
 
+      {/* 2b. Body Fat & Fitness Category Card */}
+      <section aria-label="Body fat status" className="bg-surface border border-surfaceBorder rounded-3xl p-5 shadow-sm space-y-3">
+        <div className="flex items-start justify-between">
+          <div className="space-y-0.5">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-mutedText block">
+              {lang === 'id' ? 'Komposisi & Lemak Tubuh' : 'Body Fat & Composition'}
+            </span>
+            {latestBf ? (
+              <div className="flex items-baseline gap-2 mt-1 flex-wrap">
+                <span className="text-3xl font-black font-mono text-white">
+                  {latestBf.toFixed(1)}
+                  <span className="text-sm font-bold text-primary ml-0.5">%</span>
+                </span>
+                {bfClassification && (
+                  <span
+                    className={`text-xs font-black px-2.5 py-0.5 rounded-xl border ${bfClassification.badgeBg} ${bfClassification.badgeBorder} ${bfClassification.badgeText}`}
+                  >
+                    {lang === 'id' ? bfClassification.categoryLabel : bfClassification.categoryLabelEn}
+                  </span>
+                )}
+              </div>
+            ) : (
+              <div className="mt-1">
+                <span className="text-sm font-bold text-white block">
+                  {lang === 'id' ? 'Belum Ada Data Lemak Tubuh' : 'No Body Fat Logged Yet'}
+                </span>
+                <span className="text-[11px] text-mutedText">
+                  {lang === 'id'
+                    ? 'Hitung body fat untuk mengetahui kategori kebugaran fisikmu'
+                    : 'Calculate body fat to discover your fitness category'}
+                </span>
+              </div>
+            )}
+          </div>
+
+          <button
+            onClick={() => setIsBodyFatOpen(true)}
+            className="py-2 px-3 rounded-xl bg-card hover:bg-surfaceBorder border border-surfaceBorder text-slate-200 hover:text-white text-xs font-bold flex items-center gap-1.5 active:scale-95 transition-all shrink-0 ml-2"
+          >
+            <Percent className="w-3.5 h-3.5 text-primary" />
+            <span>
+              {latestBf
+                ? (lang === 'id' ? 'Cek Ulang' : 'Recalculate')
+                : (lang === 'id' ? 'Hitung Body Fat' : 'Calculate')}
+            </span>
+          </button>
+        </div>
+
+        {latestBf && latestBfMeasurement && (
+          <div className="grid grid-cols-2 gap-2 pt-2 border-t border-surfaceBorder/60 text-[11px]">
+            <div className="bg-card/70 rounded-xl p-2.5 border border-surfaceBorder/50">
+              <span className="text-subtleText block text-[10px] uppercase font-semibold">
+                {lang === 'id' ? 'Massa Bebas Lemak (Otot)' : 'Lean Mass'}
+              </span>
+              <span className="font-mono font-bold text-primary text-sm">
+                {((latestBfMeasurement.weight_kg * (100 - latestBf)) / 100).toFixed(1)} kg
+              </span>
+            </div>
+            <div className="bg-card/70 rounded-xl p-2.5 border border-surfaceBorder/50">
+              <span className="text-subtleText block text-[10px] uppercase font-semibold">
+                {lang === 'id' ? 'Massa Lemak Murni' : 'Fat Mass'}
+              </span>
+              <span className="font-mono font-bold text-amber-400 text-sm">
+                {((latestBfMeasurement.weight_kg * latestBf) / 100).toFixed(1)} kg
+              </span>
+            </div>
+          </div>
+        )}
+      </section>
+
       {/* 3. Measurements History Log */}
       <section aria-label="Measurement records" className="space-y-2">
         <h3 className="text-xs font-bold uppercase tracking-wider text-mutedText px-1">
@@ -239,6 +327,11 @@ export default function ProgressPage() {
                   {item.waist_cm && (
                     <span className="text-[10px] px-1.5 py-0.5 rounded bg-card border border-surfaceBorder text-mutedText">
                       Pinggang {item.waist_cm} cm
+                    </span>
+                  )}
+                  {item.body_fat_pct !== undefined && item.body_fat_pct > 0 && (
+                    <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-primary/15 border border-primary/25 text-primary">
+                      {item.body_fat_pct}% BF
                     </span>
                   )}
                 </div>
@@ -347,6 +440,20 @@ export default function ProgressPage() {
 
               <div>
                 <label className="text-[10px] font-semibold text-mutedText block mb-1">
+                  {lang === 'id' ? 'Persentase Lemak Tubuh (% BF) - Opsional' : 'Body Fat % - Optional'}
+                </label>
+                <input
+                  type="number"
+                  step="0.1"
+                  value={newBodyFat}
+                  onChange={(e) => setNewBodyFat(e.target.value)}
+                  placeholder="e.g. 15.2"
+                  className="w-full bg-card border border-surfaceBorder rounded-xl px-3 py-2 text-xs font-mono text-white focus:outline-none focus:border-primary"
+                />
+              </div>
+
+              <div>
+                <label className="text-[10px] font-semibold text-mutedText block mb-1">
                   {t('add_photo', lang)}
                 </label>
                 <input
@@ -393,6 +500,16 @@ export default function ProgressPage() {
           </div>
         </div>
       )}
+
+      {/* Body Fat Calculator & Category Modal */}
+      <BodyFatModal
+        isOpen={isBodyFatOpen}
+        onClose={() => setIsBodyFatOpen(false)}
+        lang={lang}
+        onSaved={() => loadData()}
+        initialWeight={parseFloat(newWeight) || profile?.weight_kg || 75}
+        initialWaist={parseFloat(newWaist) || undefined}
+      />
     </div>
   );
 }

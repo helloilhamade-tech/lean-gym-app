@@ -84,6 +84,8 @@ export const SAMPLE_USER_PROFILE: Profile = {
   name: 'Alex Pratama',
   height_cm: 176,
   weight_kg: 78.4,
+  gender: 'male',
+  age: 26,
   activity_level: 'moderate',
   units: 'metric',
   timezone: 'Asia/Jakarta',

@@ -16,6 +16,8 @@ export interface Profile {
   name: string;
   height_cm: number;
   weight_kg: number;
+  gender?: 'male' | 'female';
+  age?: number;
   activity_level: ActivityLevel;
   units: 'metric' | 'imperial';
   timezone: string;
