@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { X, Dumbbell, Utensils, Scale, Droplet } from 'lucide-react';
 import { Language, t } from '@/lib/domain/i18n';
 import { db } from '@/lib/db/dexie-db';
+import { getLocalDateString } from '@/lib/domain/calendar-sync';
 
 interface QuickActionModalProps {
   isOpen: boolean;
@@ -23,9 +24,18 @@ export function QuickActionModal({ isOpen, onClose, lang, onDataLogged }: QuickA
 
   if (!isOpen) return null;
 
-  const handleStartWorkout = () => {
+  const handleStartWorkout = async () => {
     onClose();
-    router.push('/workout/active');
+    const localToday = getLocalDateString();
+    const isoToday = new Date().toISOString().split('T')[0];
+    const todayW = await db.workouts
+      .filter((w) => w.scheduled_at === localToday || w.scheduled_at === isoToday || w.status === 'in_progress')
+      .last();
+    if (todayW) {
+      router.push(`/workout/active?id=${todayW.id}`);
+    } else {
+      router.push('/workout/active');
+    }
   };
 
   const handleAddMeal = () => {

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   X,
   Calendar as CalendarIcon,
@@ -21,6 +22,7 @@ import {
   generateGoogleCalendarUrl,
   downloadICSFile,
   ExerciseSummary,
+  getLocalDateString,
 } from '@/lib/domain/calendar-sync';
 
 interface WorkoutCalendarModalProps {
@@ -34,9 +36,10 @@ export function WorkoutCalendarModal({
   onClose,
   onOpenFocusModalForDate,
 }: WorkoutCalendarModalProps) {
+  const router = useRouter();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDateStr, setSelectedDateStr] = useState(
-    new Date().toISOString().split('T')[0]
+    getLocalDateString()
   );
   const [workouts, setWorkouts] = useState<Workout[]>([]);
   const [selectedWorkout, setSelectedWorkout] = useState<Workout | null>(null);
@@ -118,7 +121,7 @@ export function WorkoutCalendarModal({
     setSelectedDateStr(formatted);
   };
 
-  const todayStr = new Date().toISOString().split('T')[0];
+  const todayStr = getLocalDateString();
 
   const handleOpenGoogleCalendar = () => {
     if (!selectedWorkout) return;
@@ -307,6 +310,20 @@ export function WorkoutCalendarModal({
                       </div>
                     ))}
                   </div>
+                )}
+
+                {/* Direct Start Workout Button */}
+                {(selectedWorkout.duration_min ?? 0) > 0 && (
+                  <button
+                    onClick={() => {
+                      onClose();
+                      router.push(`/workout/active?id=${selectedWorkout.id}`);
+                    }}
+                    className="w-full py-2.5 px-3 rounded-xl bg-primary hover:bg-primary-hover text-black font-extrabold text-xs flex items-center justify-center gap-1.5 shadow-md shadow-primary/20 active:scale-95 transition-all"
+                  >
+                    <Dumbbell className="w-3.5 h-3.5 stroke-[2.5px]" />
+                    <span>Mulai Latihan Sesi Ini</span>
+                  </button>
                 )}
 
                 {/* Calendar Sync Buttons */}

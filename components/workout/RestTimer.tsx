@@ -77,7 +77,7 @@ export function RestTimer({
   const progressPct = initialSeconds > 0 ? ((initialSeconds - timeLeft) / initialSeconds) * 100 : 0;
 
   return (
-    <aside aria-label="Rest timer" className="fixed bottom-20 left-0 right-0 z-40 max-w-[430px] mx-auto px-3">
+    <aside aria-label="Rest timer" className="fixed bottom-4 left-0 right-0 z-40 max-w-[430px] mx-auto px-3">
       <div className="bg-surface/95 backdrop-blur-md border border-surfaceBorder shadow-2xl rounded-2xl p-3 flex flex-col gap-2 transition-all">
         {/* Progress line */}
         <div className="w-full bg-surfaceBorder h-1 rounded-full overflow-hidden">

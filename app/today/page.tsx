@@ -27,6 +27,7 @@ import { Language, t } from '@/lib/domain/i18n';
 import { WorkoutFocusModal } from '@/components/workout/WorkoutFocusModal';
 import { WorkoutCalendarModal } from '@/components/workout/WorkoutCalendarModal';
 import { generateAndSaveFocusWorkout, WorkoutFocus } from '@/lib/domain/workout-generator';
+import { getLocalDateString } from '@/lib/domain/calendar-sync';
 
 export default function TodayPage() {
   const router = useRouter();
@@ -65,23 +66,33 @@ export default function TodayPage() {
       const g = await db.goals.where('profile_id').equals(p.id).first();
       setGoal(g || null);
 
-      const todayStr = new Date().toISOString().split('T')[0];
-      const w = await db.workouts
+      const localToday = getLocalDateString();
+      const isoToday = new Date().toISOString().split('T')[0];
+
+      let todayWorkouts = await db.workouts
         .where('profile_id')
         .equals(p.id)
-        .filter((wkt) => wkt.scheduled_at === todayStr)
-        .first();
+        .filter((wkt) => wkt.scheduled_at === localToday || wkt.scheduled_at === isoToday)
+        .toArray();
+
+      if (todayWorkouts.length === 0) {
+        todayWorkouts = await db.workouts
+          .filter((wkt) => wkt.scheduled_at === localToday || wkt.scheduled_at === isoToday)
+          .toArray();
+      }
+
+      const w = todayWorkouts.find((wkt) => wkt.status === 'in_progress') || todayWorkouts[todayWorkouts.length - 1];
       setTodayWorkout(w || null);
 
-      const d = await db.dailyLogs
-        .where({ profile_id: p.id, date: todayStr })
-        .first();
+      const d =
+        (await db.dailyLogs.where({ profile_id: p.id, date: localToday }).first()) ||
+        (await db.dailyLogs.where({ profile_id: p.id, date: isoToday }).first());
       setDailyLog(d || null);
 
       const m = await db.meals
         .where('profile_id')
         .equals(p.id)
-        .filter((meal) => meal.eaten_at.startsWith(todayStr))
+        .filter((meal) => meal.eaten_at.startsWith(localToday) || meal.eaten_at.startsWith(isoToday))
         .toArray();
       setMeals(m);
 
@@ -228,7 +239,13 @@ export default function TodayPage() {
           {/* Primary CTA */}
           <div>
             <button
-              onClick={() => router.push('/workout/active')}
+              onClick={() => {
+                if (todayWorkout) {
+                  router.push(`/workout/active?id=${todayWorkout.id}`);
+                } else {
+                  router.push('/workout/active');
+                }
+              }}
               className="w-full py-3.5 px-4 rounded-2xl bg-primary hover:bg-primary-hover text-black font-extrabold text-sm flex items-center justify-center gap-2 shadow-lg shadow-primary/25 active:scale-[0.98] transition-all"
             >
               <span>

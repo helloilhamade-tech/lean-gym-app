@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import React, { useState, useEffect, useRef, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import {
   Check,
   Plus,
@@ -28,6 +28,9 @@ import {
   ExerciseHistory,
   MuscleGroup,
 } from '@/lib/db/schema';
+import { SEED_EXERCISES } from '@/lib/db/seed-data';
+import { getLocalDateString } from '@/lib/domain/calendar-sync';
+import { generateAndSaveFocusWorkout } from '@/lib/domain/workout-generator';
 import {
   calculateEst1RM,
   calculateTotalVolume,
@@ -50,8 +53,10 @@ interface ActiveExerciseData {
   isPR?: boolean;
 }
 
-export default function ActiveWorkoutPage() {
+function ActiveWorkoutContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const workoutIdParam = searchParams.get('id');
   const [lang, setLang] = useState<Language>('id');
   const [workout, setWorkout] = useState<Workout | null>(null);
   const [exercisesData, setExercisesData] = useState<ActiveExerciseData[]>([]);
@@ -110,35 +115,95 @@ export default function ActiveWorkoutPage() {
 
     async function loadActiveSession() {
       try {
-        const todayStr = new Date().toISOString().split('T')[0];
-        let w = await db.workouts
-          .filter((item) => item.scheduled_at === todayStr || item.status === 'in_progress')
-          .first();
+        const localToday = getLocalDateString();
+        const isoToday = new Date().toISOString().split('T')[0];
+        let w: Workout | undefined;
 
+        // 1. If explicit workout ID provided in URL (?id=...)
+        if (workoutIdParam) {
+          const directW = await db.workouts.get(workoutIdParam);
+          if (directW) {
+            w = directW;
+          }
+        }
+
+        // 2. If not found or no param, search for today's workout (local or ISO)
         if (!w) {
-          const profile = await db.profiles.toCollection().first();
-          const profileId = profile?.id || 'usr-demo-01';
-          const newWorkoutId = `wkt-${Date.now()}`;
-          w = {
-            id: newWorkoutId,
-            profile_id: profileId,
-            name: 'Upper Body A (Chest & Back Focus)',
-            scheduled_at: todayStr,
-            started_at: new Date().toISOString(),
+          const todayWorkouts = await db.workouts
+            .filter((item) => item.scheduled_at === localToday || item.scheduled_at === isoToday)
+            .toArray();
+
+          if (todayWorkouts.length > 0) {
+            // Pick in_progress if active, otherwise the newest one created today
+            w = todayWorkouts.find((item) => item.status === 'in_progress') || todayWorkouts[todayWorkouts.length - 1];
+          }
+        }
+
+        // 3. If still not found, check if there is an in_progress workout from recent sessions
+        if (!w) {
+          const inProgress = await db.workouts
+            .filter((item) => item.status === 'in_progress')
+            .toArray();
+          if (inProgress.length > 0) {
+            w = inProgress[inProgress.length - 1];
+          }
+        }
+
+        // 4. If no workout exists at all, generate a fresh workout with real exercises & sets
+        if (!w) {
+          const generated = await generateAndSaveFocusWorkout({
+            focus: 'upper',
+            dateStr: localToday,
+          });
+          w = generated.workout;
+        }
+
+        // Ensure status is marked in_progress and update started_at
+        if (w.status !== 'in_progress') {
+          await db.workouts.update(w.id, {
             status: 'in_progress',
-            duration_min: 55,
-            created_at: new Date().toISOString(),
-          };
-          await db.workouts.put(w);
+            started_at: w.started_at || new Date().toISOString(),
+          });
+          w.status = 'in_progress';
+        }
+
+        // Reset any other stale in_progress workouts across DB to avoid future collisions
+        const otherInProgress = await db.workouts
+          .filter((item) => item.id !== w!.id && item.status === 'in_progress')
+          .toArray();
+        for (const o of otherInProgress) {
+          await db.workouts.update(o.id, { status: 'completed' });
         }
 
         setWorkout(w);
 
         // Fetch workout exercises
-        const weList = await db.workoutExercises
+        let weList = await db.workoutExercises
           .where('workout_id')
           .equals(w.id)
           .sortBy('sort_order');
+
+        // Fallback safety: If this workout has no exercises attached, auto-populate from catalog
+        if (weList.length === 0) {
+          let allEx = await db.exercises.toArray();
+          if (allEx.length === 0) allEx = SEED_EXERCISES;
+          const fallbackCandidates = allEx.slice(0, 4);
+          for (let idx = 0; idx < fallbackCandidates.length; idx++) {
+            const ex = fallbackCandidates[idx];
+            const weId = `we-${w.id}-${idx + 1}`;
+            const newWE: WorkoutExercise = {
+              id: weId,
+              workout_id: w.id,
+              exercise_id: ex.id,
+              sort_order: idx + 1,
+              target_sets: 3,
+              target_reps: '8-10',
+              rest_sec: 90,
+            };
+            await db.workoutExercises.put(newWE);
+            weList.push(newWE);
+          }
+        }
 
         const allExercises = await db.exercises.toArray();
         const exMap = new Map(allExercises.map((e) => [e.id, e]));
@@ -207,7 +272,7 @@ export default function ActiveWorkoutPage() {
     }
 
     loadActiveSession();
-  }, []);
+  }, [workoutIdParam]);
 
   // Set field change handler (optimistic and instant local save)
   const handleSetChange = async (
@@ -406,17 +471,18 @@ export default function ActiveWorkoutPage() {
   return (
     <div className="space-y-4 pb-20 animate-in fade-in duration-200">
       {/* 1. Header Bar: Workout Title & Live Elapsed Timer */}
-      <div className="sticky top-12 z-20 bg-background/95 backdrop-blur-md py-2 border-b border-surfaceBorder flex items-center justify-between">
-        <div className="flex items-center gap-2">
+      <div className="sticky top-0 z-30 bg-background/95 backdrop-blur-md py-3 -mx-4 px-4 border-b border-surfaceBorder flex items-center justify-between shadow-sm">
+        <div className="flex items-center gap-2.5">
           <button
             onClick={() => router.push('/today')}
-            className="p-1.5 rounded-full hover:bg-card text-mutedText hover:text-white"
+            className="p-1.5 -ml-1 rounded-full hover:bg-card text-mutedText hover:text-white transition-colors"
+            title="Kembali ke Dashboard"
           >
             <ArrowLeft className="w-5 h-5" />
           </button>
           <div>
             <h1 className="text-sm font-extrabold text-white line-clamp-1">
-              {workout?.name || 'Upper Body A'}
+              {workout?.name || (lang === 'id' ? 'Sesi Latihan Aktif' : 'Active Workout Session')}
             </h1>
             <div className="flex items-center gap-2 text-[10px] text-mutedText font-mono">
               <span className="flex items-center gap-1 text-primary">
@@ -755,5 +821,19 @@ export default function ActiveWorkoutPage() {
         onSwapped={handleExerciseSwapped}
       />
     </div>
+  );
+}
+
+export default function ActiveWorkoutPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-[60vh] flex flex-col items-center justify-center">
+          <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+        </div>
+      }
+    >
+      <ActiveWorkoutContent />
+    </Suspense>
   );
 }

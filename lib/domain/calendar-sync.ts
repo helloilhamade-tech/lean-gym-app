@@ -7,6 +7,16 @@ export interface ExerciseSummary {
 }
 
 /**
+ * Returns YYYY-MM-DD in the user's local timezone (preventing UTC offset mismatches)
+ */
+export function getLocalDateString(date: Date = new Date()): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+/**
  * Formats a Date object to YYYYMMDDTHHmmssZ format for calendar URLs and iCal.
  */
 export function formatCalendarDate(date: Date): string {
@@ -21,7 +31,7 @@ export function generateGoogleCalendarUrl(
   exercises: ExerciseSummary[] = [],
   dateStr?: string
 ): string {
-  const targetDate = dateStr || workout.scheduled_at || new Date().toISOString().split('T')[0];
+  const targetDate = dateStr || workout.scheduled_at || getLocalDateString();
   
   // Default to 08:00 AM on target date
   const [year, month, day] = targetDate.split('-').map(Number);
@@ -56,7 +66,7 @@ export function generateICalendarData(
   exercises: ExerciseSummary[] = [],
   dateStr?: string
 ): string {
-  const targetDate = dateStr || workout.scheduled_at || new Date().toISOString().split('T')[0];
+  const targetDate = dateStr || workout.scheduled_at || getLocalDateString();
   const [year, month, day] = targetDate.split('-').map(Number);
   const startDate = new Date(year, month - 1, day, 8, 0, 0);
   const durationMin = workout.duration_min || 50;

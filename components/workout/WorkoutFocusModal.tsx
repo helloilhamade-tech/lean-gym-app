@@ -23,6 +23,7 @@ import {
 } from '@/lib/domain/workout-generator';
 import { BodyAnatomyVisualizer } from '@/components/ui/BodyAnatomyVisualizer';
 import { MuscleGroup } from '@/lib/db/schema';
+import { getLocalDateString } from '@/lib/domain/calendar-sync';
 
 interface WorkoutFocusModalProps {
   isOpen: boolean;
@@ -55,7 +56,7 @@ export function WorkoutFocusModal({
         durationMin,
         equipment,
         energyLevel,
-        dateStr: targetDateStr || new Date().toISOString().split('T')[0],
+        dateStr: targetDateStr || getLocalDateString(),
       });
 
       if (onWorkoutGenerated) {

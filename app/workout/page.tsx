@@ -22,6 +22,7 @@ import { CustomExerciseModal } from '@/components/workout/CustomExerciseModal';
 import { RoutineEditorModal } from '@/components/workout/RoutineEditorModal';
 import { WorkoutFocusModal } from '@/components/workout/WorkoutFocusModal';
 import { WorkoutCalendarModal } from '@/components/workout/WorkoutCalendarModal';
+import { getLocalDateString } from '@/lib/domain/calendar-sync';
 
 export default function WorkoutPage() {
   const router = useRouter();
@@ -62,6 +63,12 @@ export default function WorkoutPage() {
     loadData();
   }, [loadData]);
 
+  const localToday = getLocalDateString();
+  const isoToday = new Date().toISOString().split('T')[0];
+  const todayWorkout =
+    workouts.find((w) => w.scheduled_at === localToday || w.scheduled_at === isoToday) ||
+    workouts.find((w) => w.status === 'in_progress');
+
   return (
     <div className="space-y-5 animate-in fade-in duration-200">
       {/* 1. Header with Active Program & Quick Start */}
@@ -76,7 +83,13 @@ export default function WorkoutPage() {
         </div>
 
         <button
-          onClick={() => router.push('/workout/active')}
+          onClick={() => {
+            if (todayWorkout) {
+              router.push(`/workout/active?id=${todayWorkout.id}`);
+            } else {
+              router.push('/workout/active');
+            }
+          }}
           className="py-2 px-3.5 rounded-xl bg-primary text-black text-xs font-bold flex items-center gap-1.5 shadow-md shadow-primary/20 active:scale-95 transition-all"
         >
           <Dumbbell className="w-4 h-4" />
@@ -135,7 +148,13 @@ export default function WorkoutPage() {
       {/* 3. Today's Workout CTA Banner */}
       <div className="bg-card border border-primary/30 rounded-2xl p-4 transition-all relative overflow-hidden space-y-3">
         <div
-          onClick={() => router.push('/workout/active')}
+          onClick={() => {
+            if (todayWorkout) {
+              router.push(`/workout/active?id=${todayWorkout.id}`);
+            } else {
+              router.push('/workout/active');
+            }
+          }}
           className="flex items-center justify-between cursor-pointer"
         >
           <div>
@@ -143,11 +162,11 @@ export default function WorkoutPage() {
               {lang === 'id' ? 'Sesi Hari Ini' : "Today's Session"}
             </span>
             <h2 className="text-base font-extrabold text-white mt-1.5">
-              {workouts.find((w) => w.scheduled_at === new Date().toISOString().split('T')[0])?.name || 'Upper Body A (Chest & Back Focus)'}
+              {todayWorkout?.name || (lang === 'id' ? 'Latihan Harian' : 'Daily Workout')}
             </h2>
             <div className="flex items-center gap-2 text-xs text-mutedText mt-1">
               <span className="flex items-center gap-1">
-                <Clock className="w-3.5 h-3.5" /> 50 min
+                <Clock className="w-3.5 h-3.5" /> {todayWorkout?.duration_min || 45} min
               </span>
               <span>•</span>
               <span>Menu Latihan Harian</span>

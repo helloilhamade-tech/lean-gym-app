@@ -1,6 +1,7 @@
 import { db } from '@/lib/db/dexie-db';
 import { Workout, WorkoutExercise, SetEntry, Exercise, MuscleGroup } from '@/lib/db/schema';
 import { SEED_EXERCISES } from '@/lib/db/seed-data';
+import { getLocalDateString } from './calendar-sync';
 
 export type WorkoutFocus = 'upper' | 'lower' | 'push' | 'pull' | 'legs' | 'core' | 'rest';
 export type WorkoutDuration = 30 | 45 | 60;
@@ -147,12 +148,14 @@ export function selectExercisesForFocus(
 export async function generateAndSaveFocusWorkout(
   params: GenerateWorkoutParams
 ): Promise<{ workout: Workout; exercises: Exercise[] }> {
+  const localToday = getLocalDateString();
+  const isoToday = new Date().toISOString().split('T')[0];
   const {
     focus,
     durationMin = 45,
     equipment = 'gym',
     energyLevel = 'moderate',
-    dateStr = new Date().toISOString().split('T')[0],
+    dateStr = localToday,
   } = params;
 
   const profile = await db.profiles.toCollection().first();
@@ -166,15 +169,28 @@ export async function generateAndSaveFocusWorkout(
 
   const focusConfig = FOCUS_OPTIONS.find((f) => f.id === focus) || FOCUS_OPTIONS[0];
 
+  // Helper to remove any workouts for this date
+  const existingForDate = await db.workouts
+    .filter((w) => w.scheduled_at === dateStr || (dateStr === localToday && w.scheduled_at === isoToday))
+    .toArray();
+
+  for (const ew of existingForDate) {
+    const oldWE = await db.workoutExercises.where('workout_id').equals(ew.id).toArray();
+    for (const we of oldWE) {
+      await db.sets.where('workout_exercise_id').equals(we.id).delete();
+    }
+    await db.workoutExercises.where('workout_id').equals(ew.id).delete();
+    await db.workouts.delete(ew.id);
+  }
+
+  // Clear any old in_progress flags across DB so the new focus workout is the sole candidate
+  const staleInProgress = await db.workouts.filter((w) => w.status === 'in_progress').toArray();
+  for (const st of staleInProgress) {
+    await db.workouts.update(st.id, { status: 'completed' });
+  }
+
   // If focus is REST DAY:
   if (focus === 'rest') {
-    // Delete any existing workout for this date
-    const existing = await db.workouts.filter((w) => w.scheduled_at === dateStr).first();
-    if (existing) {
-      await db.workoutExercises.where('workout_id').equals(existing.id).delete();
-      await db.workouts.delete(existing.id);
-    }
-
     const restWorkout: Workout = {
       id: `wkt-rest-${dateStr}-${Date.now()}`,
       profile_id: profileId,
@@ -195,20 +211,7 @@ export async function generateAndSaveFocusWorkout(
 
   // Select exercises
   const selectedExercises = selectExercisesForFocus(dbExercises, focus, equipment, durationMin);
-
-  // Check if a workout already exists for dateStr
-  const existingWkt = await db.workouts.filter((w) => w.scheduled_at === dateStr).first();
-  const workoutId = existingWkt?.id || `wkt-${dateStr}-${Date.now()}`;
-
-  // Clean old workoutExercises and sets if re-generating for this workout
-  if (existingWkt) {
-    const oldWE = await db.workoutExercises.where('workout_id').equals(workoutId).toArray();
-    for (const we of oldWE) {
-      await db.sets.where('workout_exercise_id').equals(we.id).delete();
-    }
-    await db.workoutExercises.where('workout_id').equals(workoutId).delete();
-  }
-
+  const workoutId = `wkt-${dateStr}-${Date.now()}`;
   const workoutName = `${focusConfig.labelId} (${selectedExercises.map((e) => e.muscle_group).slice(0, 2).map((m) => m.toUpperCase()).join(' & ')})`;
 
   const newWorkout: Workout = {

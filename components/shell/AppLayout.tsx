@@ -85,7 +85,8 @@ function AppLayoutInner({ children }: AppLayoutProps) {
   }
 
   // 3. Authenticated (or on /login): Show features and navigation conditionally
-  const showChrome = Boolean(user && !isLoginPage && !isOnboarding);
+  const isWorkoutActive = pathname === '/workout/active';
+  const showChrome = Boolean(user && !isLoginPage && !isOnboarding && !isWorkoutActive);
 
   return (
     <div className="min-h-screen bg-black text-slate-100 flex justify-center font-sans antialiased selection:bg-primary selection:text-black">
@@ -93,7 +94,11 @@ function AppLayoutInner({ children }: AppLayoutProps) {
       <div className="w-full max-w-[430px] min-h-screen bg-background border-x border-surfaceBorder/40 flex flex-col relative shadow-2xl">
         {showChrome && <Header lang={lang} onToggleLang={handleToggleLang} />}
 
-        <main className={`flex-1 px-4 pt-3 overflow-y-auto ${showChrome ? 'pb-24' : 'pb-6'}`}>
+        <main
+          className={`flex-1 px-4 overflow-y-auto ${
+            isWorkoutActive ? 'pt-0 pb-16' : `pt-3 ${showChrome ? 'pb-24' : 'pb-6'}`
+          }`}
+        >
           {children}
         </main>
 
