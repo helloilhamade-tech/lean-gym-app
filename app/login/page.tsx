@@ -2,18 +2,125 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Mail, Lock, ArrowRight, ShieldCheck, Dumbbell, AlertCircle } from "lucide-react";
+import {
+  Mail,
+  Lock,
+  ArrowRight,
+  ShieldCheck,
+  Dumbbell,
+  AlertCircle,
+  UserCheck,
+  ExternalLink,
+  HelpCircle,
+} from 'lucide-react';
 import { useAuth } from '@/lib/firebase/auth-context';
 import { db } from '@/lib/db/dexie-db';
 
+interface AuthErrorInfo {
+  title: string;
+  description: string;
+  isFirebaseConfigIssue?: boolean;
+}
+
+function getFriendlyAuthError(err: any): AuthErrorInfo {
+  if (!err) {
+    return {
+      title: 'Terjadi Kesalahan',
+      description: 'Gagal melakukan login. Silakan coba beberapa saat lagi.',
+    };
+  }
+
+  const code = String(err.code || '');
+  const message = String(err.message || '').toLowerCase();
+
+  // Internal error or operation not allowed -> Firebase Console config
+  if (
+    code === 'auth/internal-error' ||
+    code === 'auth/operation-not-allowed' ||
+    code === 'auth/configuration-not-found' ||
+    message.includes('unknownerror') ||
+    message.includes('internal error')
+  ) {
+    return {
+      title: 'Google Sign-In Belum Diaktifkan di Firebase Console',
+      description:
+        'Metode autentikasi Google belum diaktifkan (Enable) di Firebase Console atau Project Support Email belum dipilih.',
+      isFirebaseConfigIssue: true,
+    };
+  }
+
+  if (code === 'auth/unauthorized-domain' || message.includes('unauthorized-domain')) {
+    return {
+      title: 'Domain Belum Terdaftar di Firebase',
+      description:
+        'Domain web ini belum ditambahkan ke Firebase Console > Authentication > Settings > Authorized domains.',
+      isFirebaseConfigIssue: true,
+    };
+  }
+
+  if (code === 'auth/popup-blocked') {
+    return {
+      title: 'Pop-up Diblokir Browser',
+      description: 'Browser Anda memblokir jendela popup Google. Harap izinkan pop-up untuk situs ini.',
+    };
+  }
+
+  if (code === 'auth/popup-closed-by-user') {
+    return {
+      title: 'Login Dibatalkan',
+      description: 'Jendela login ditutup sebelum proses verifikasi selesai.',
+    };
+  }
+
+  if (code === 'auth/invalid-credential' || code === 'auth/wrong-password') {
+    return {
+      title: 'Email atau Kata Sandi Salah',
+      description: 'Kombinasi email dan kata sandi yang Anda masukkan tidak cocok.',
+    };
+  }
+
+  if (code === 'auth/user-not-found') {
+    return {
+      title: 'Akun Belum Terdaftar',
+      description: 'Email ini belum terdaftar. Silakan pilih tab "Daftar Baru" untuk membuat akun.',
+    };
+  }
+
+  if (code === 'auth/email-already-in-use') {
+    return {
+      title: 'Email Sudah Digunakan',
+      description: 'Email ini sudah memiliki akun. Silakan langsung masuk di tab "Masuk".',
+    };
+  }
+
+  if (code === 'auth/weak-password') {
+    return {
+      title: 'Password Terlalu Pendek',
+      description: 'Kata sandi minimal harus terdiri dari 6 karakter.',
+    };
+  }
+
+  if (code === 'auth/network-request-failed') {
+    return {
+      title: 'Gangguan Koneksi Jaringan',
+      description: 'Gagal terhubung ke server Firebase. Periksa koneksi internet Anda.',
+    };
+  }
+
+  return {
+    title: 'Gagal Masuk',
+    description: err.message || 'Terjadi kesalahan saat proses autentikasi.',
+  };
+}
+
 export default function LoginPage() {
   const router = useRouter();
-  const { user, loading, isConfigured, signInWithGoogle, signInWithEmail, signUpWithEmail } = useAuth();
+  const { user, loading, signInWithGoogle, signInWithEmail, signUpWithEmail, signInAsGuest } = useAuth();
 
   const [mode, setMode] = useState<'signin' | 'signup'>('signin');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [errorInfo, setErrorInfo] = useState<AuthErrorInfo | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // If already logged in, route to today or onboarding
@@ -33,9 +140,12 @@ export default function LoginPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setErrorMsg(null);
+    setErrorInfo(null);
     if (!email.trim() || !password) {
-      setErrorMsg('Harap isi email dan password.');
+      setErrorInfo({
+        title: 'Formulir Belum Lengkap',
+        description: 'Harap isi alamat email dan kata sandi Anda.',
+      });
       return;
     }
 
@@ -58,22 +168,14 @@ export default function LoginPage() {
         router.replace('/onboarding');
       }
     } catch (err: any) {
-      let msg = err.message || 'Terjadi kesalahan saat masuk.';
-      if (err.code === 'auth/invalid-credential' || err.code === 'auth/wrong-password') {
-        msg = 'Email atau password salah.';
-      } else if (err.code === 'auth/user-not-found') {
-        msg = 'Akun belum terdaftar. Silakan pilih Daftar Baru.';
-      } else if (err.code === 'auth/email-already-in-use') {
-        msg = 'Email sudah digunakan. Silakan langsung masuk.';
-      }
-      setErrorMsg(msg);
+      setErrorInfo(getFriendlyAuthError(err));
     } finally {
       setIsSubmitting(false);
     }
   };
 
   const handleGoogleSignIn = async () => {
-    setErrorMsg(null);
+    setErrorInfo(null);
     setIsSubmitting(true);
     try {
       await signInWithGoogle();
@@ -85,7 +187,23 @@ export default function LoginPage() {
       }
     } catch (err: any) {
       if (err.code !== 'auth/popup-closed-by-user') {
-        setErrorMsg(err.message || 'Gagal masuk dengan Google.');
+        setErrorInfo(getFriendlyAuthError(err));
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleGuestSignIn = async () => {
+    setErrorInfo(null);
+    setIsSubmitting(true);
+    try {
+      signInAsGuest();
+      const profile = await db.profiles.toCollection().first();
+      if (profile) {
+        router.replace('/today');
+      } else {
+        router.replace('/onboarding');
       }
     } finally {
       setIsSubmitting(false);
@@ -111,12 +229,12 @@ export default function LoginPage() {
         </div>
 
         <p className="text-xs text-slate-300 max-w-xs mx-auto leading-relaxed pt-1">
-          Silakan masuk menggunakan akun <strong>Google (Gmail)</strong> untuk membuka seluruh fitur latihan, direktori anatomi otot, dan catatan beban gym Anda.
+          Silakan masuk menggunakan akun <strong>Google (Gmail)</strong> atau <strong>Mode Tamu</strong> untuk membuka seluruh fitur latihan, rekomendasi nutrisi, dan tracking gym Anda.
         </p>
       </div>
 
       {/* 2. Login Card */}
-      <div className="bg-surface border border-surfaceBorder rounded-3xl p-5 shadow-2xl space-y-4 my-auto">
+      <div className="bg-surface border border-surfaceBorder rounded-3xl p-5 shadow-2xl space-y-4 my-4">
         {/* HERO: 1-Click Google / Gmail Sign In */}
         <div className="space-y-2">
           <button
@@ -140,6 +258,55 @@ export default function LoginPage() {
           </div>
         </div>
 
+        {/* Detailed Error & Troubleshooting Banner */}
+        {errorInfo && (
+          <div className="p-3.5 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-xs space-y-2 text-rose-300 animate-in fade-in duration-200">
+            <div className="flex items-start gap-2 font-bold text-rose-400">
+              <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+              <span>{errorInfo.title}</span>
+            </div>
+            <p className="text-[11px] text-rose-300 leading-relaxed pl-6">
+              {errorInfo.description}
+            </p>
+
+            {errorInfo.isFirebaseConfigIssue && (
+              <div className="mt-2 pt-2 border-t border-rose-500/20 pl-6 space-y-2">
+                <p className="text-[11px] font-semibold text-white">Cara Mengaktifkan di Firebase Console:</p>
+                <ol className="text-[11px] text-slate-300 space-y-1 list-decimal list-inside">
+                  <li>Buka <strong>Firebase Console</strong> &gt; Proyek Anda</li>
+                  <li>Buka menu <strong>Authentication</strong> &gt; tab <strong>Sign-in method</strong></li>
+                  <li>Klik <strong>Google</strong> &gt; ubah status menjadi <strong>Enable</strong></li>
+                  <li>Pilih <strong>Project support email</strong> &gt; klik <strong>Save</strong></li>
+                </ol>
+                <button
+                  type="button"
+                  onClick={handleGuestSignIn}
+                  className="w-full mt-2 py-2 px-3 rounded-xl bg-primary text-black font-bold text-xs flex items-center justify-center gap-1.5 active:scale-95 transition-all shadow-md shadow-primary/20"
+                >
+                  <UserCheck className="w-3.5 h-3.5" />
+                  <span>Masuk Mode Tamu Sekarang (Tanpa Setup)</span>
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Guest Mode Direct Access */}
+        <div className="pt-1">
+          <button
+            type="button"
+            onClick={handleGuestSignIn}
+            disabled={isSubmitting}
+            className="w-full py-3 px-4 rounded-2xl bg-card hover:bg-surfaceBorder border border-surfaceBorder text-slate-200 hover:text-white font-bold text-xs flex items-center justify-center gap-2 active:scale-98 transition-all disabled:opacity-50 shadow-sm"
+          >
+            <UserCheck className="w-4 h-4 text-emerald-400" />
+            <span>Masuk Mode Tamu / Demo (Offline)</span>
+          </button>
+          <p className="text-[10px] text-mutedText text-center mt-1">
+            Gunakan seluruh fitur secara instan tanpa login Firebase
+          </p>
+        </div>
+
         <div className="flex items-center gap-3 pt-2">
           <div className="flex-1 h-[1px] bg-surfaceBorder"></div>
           <span className="text-[10px] uppercase font-bold text-subtleText">atau gunakan email</span>
@@ -152,7 +319,7 @@ export default function LoginPage() {
             type="button"
             onClick={() => {
               setMode('signin');
-              setErrorMsg(null);
+              setErrorInfo(null);
             }}
             className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all ${
               mode === 'signin'
@@ -166,7 +333,7 @@ export default function LoginPage() {
             type="button"
             onClick={() => {
               setMode('signup');
-              setErrorMsg(null);
+              setErrorInfo(null);
             }}
             className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all ${
               mode === 'signup'
@@ -214,13 +381,6 @@ export default function LoginPage() {
             </div>
           </div>
 
-          {errorMsg && (
-            <div className="p-2.5 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-400 text-xs flex items-center gap-2">
-              <AlertCircle className="w-4 h-4 flex-shrink-0" />
-              <span>{errorMsg}</span>
-            </div>
-          )}
-
           <button
             type="submit"
             disabled={isSubmitting}
@@ -235,7 +395,7 @@ export default function LoginPage() {
       {/* 3. Bottom Security & Sync Explanation */}
       <div className="text-center pt-2 px-4">
         <p className="text-[11px] text-mutedText leading-relaxed">
-          Setelah login, seluruh fitur aplikasi akan terbuka dan data latihan Anda dapat diakses di berbagai perangkat secara sinkron.
+          Data Anda disimpan di penyimpanan offline perangkat secara aman dan dapat disinkronkan ke cloud sewaktu-waktu.
         </p>
       </div>
     </div>

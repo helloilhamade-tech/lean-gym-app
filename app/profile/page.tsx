@@ -24,7 +24,7 @@ import { useAuth } from '@/lib/firebase/auth-context';
 
 export default function ProfilePage() {
   const router = useRouter();
-  const { user, isConfigured, signInWithGoogle, signInWithEmail, signUpWithEmail, signOutUser, triggerSync } = useAuth();
+  const { user, isConfigured, isGuest, signInWithGoogle, signInWithEmail, signUpWithEmail, signOutUser, triggerSync } = useAuth();
 
   const [lang, setLang] = useState<Language>('id');
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -171,15 +171,15 @@ export default function ProfilePage() {
           </div>
 
           <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
-            user
+            user && !isGuest
               ? 'bg-primary/10 text-primary border-primary/20'
               : 'bg-card text-mutedText border-surfaceBorder'
           }`}>
-            {user ? 'Akun Terhubung' : 'Lokal / Offline'}
+            {user ? (isGuest ? 'Mode Tamu (Lokal)' : 'Akun Terhubung') : 'Lokal / Offline'}
           </span>
         </div>
 
-        {user ? (
+        {user && !isGuest ? (
           <div className="space-y-3 pt-1">
             <div className="bg-card p-3 rounded-xl border border-surfaceBorder flex items-center justify-between">
               <div>
@@ -210,8 +210,22 @@ export default function ProfilePage() {
           </div>
         ) : (
           <div className="space-y-3 pt-1">
+            <div className="bg-card/50 p-3 rounded-xl border border-surfaceBorder flex items-center justify-between">
+              <div>
+                <span className="text-xs font-bold text-slate-200 block">Mode Tamu (Offline)</span>
+                <span className="text-[10px] text-mutedText">Data tersimpan di perangkat ini</span>
+              </div>
+              <button
+                onClick={signOutUser}
+                className="px-2.5 py-1.5 rounded-lg bg-surface hover:bg-surfaceBorder text-rose-400 text-xs font-semibold flex items-center gap-1"
+              >
+                <LogOut className="w-3 h-3" />
+                <span>Keluar</span>
+              </button>
+            </div>
+
             <p className="text-[11px] text-mutedText leading-relaxed">
-              Masuk untuk sinkronisasi latihan & beban otomatis antar-perangkat (HP, tablet, atau laptop).
+              Hubungkan akun Google atau Email untuk backup otomatis ke cloud Firestore dan akses di HP/laptop lain.
             </p>
 
             {isConfigured ? (
