@@ -212,7 +212,6 @@ export const MUSCLE_BREAKDOWN: Record<
 };
 
 export const EXERCISE_EQUIPMENT_GUIDE: MuscleExerciseGuide[] = [
-  // ================= DADA (CHEST) =================
   {
     id: 'guide-incline-db-press',
     name: 'Incline Dumbbell Press',
@@ -304,7 +303,6 @@ export const EXERCISE_EQUIPMENT_GUIDE: MuscleExerciseGuide[] = [
     defaultRepRange: '8-10 reps',
   },
 
-  // ================= PUNGGUNG (BACK) =================
   {
     id: 'guide-lat-pulldown',
     name: 'Lat Pulldown',
@@ -366,7 +364,6 @@ export const EXERCISE_EQUIPMENT_GUIDE: MuscleExerciseGuide[] = [
     defaultRepRange: '10-12 reps',
   },
 
-  // ================= BAHU (SHOULDERS) =================
   {
     id: 'guide-seated-db-shoulder-press',
     name: 'Seated DB Shoulder Press',
@@ -413,7 +410,6 @@ export const EXERCISE_EQUIPMENT_GUIDE: MuscleExerciseGuide[] = [
     defaultRepRange: '12-15 reps',
   },
 
-  // ================= LENGAN (ARMS) =================
   {
     id: 'guide-cable-rope-pushdown',
     name: 'Cable Rope Tricep Pushdown',
@@ -460,7 +456,6 @@ export const EXERCISE_EQUIPMENT_GUIDE: MuscleExerciseGuide[] = [
     defaultRepRange: '10-12 reps',
   },
 
-  // ================= KAKI (LEGS) =================
   {
     id: 'guide-leg-press-45',
     name: '45° Incline Leg Press',
@@ -522,7 +517,6 @@ export const EXERCISE_EQUIPMENT_GUIDE: MuscleExerciseGuide[] = [
     defaultRepRange: '12-15 reps',
   },
 
-  // ================= PERUT & CORE =================
   {
     id: 'guide-cable-kneeling-crunch',
     name: 'Kneeling Cable Crunch',

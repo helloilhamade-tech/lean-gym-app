@@ -1,18 +1,12 @@
 'use client';
 
-import React, { useState } from 'react';
+import { useState } from "react";
 import {
   X,
   Sparkles,
   Dumbbell,
-  Clock,
-  Flame,
-  Zap,
   Check,
-  ChevronRight,
-  ShieldCheck,
-  RotateCcw,
-} from 'lucide-react';
+} from "lucide-react";
 import {
   WorkoutFocus,
   WorkoutDuration,
@@ -22,7 +16,6 @@ import {
   generateAndSaveFocusWorkout,
 } from '@/lib/domain/workout-generator';
 import { BodyAnatomyVisualizer } from '@/components/ui/BodyAnatomyVisualizer';
-import { MuscleGroup } from '@/lib/db/schema';
 import { getLocalDateString } from '@/lib/domain/calendar-sync';
 
 interface WorkoutFocusModalProps {

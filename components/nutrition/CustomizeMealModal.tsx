@@ -1,22 +1,16 @@
 'use client';
 
-import React, { useState } from 'react';
+import { useState } from "react";
 import {
   X,
   Search,
   Check,
-  Utensils,
   Plus,
   RefreshCw,
-  Flame,
   Info,
   Sliders,
-} from 'lucide-react';
-import {
-  PROTEIN_FOODS_CATALOG,
-  ProteinFood,
-  searchProteinFoods,
-} from '@/lib/domain/protein-foods';
+} from "lucide-react";
+import { ProteinFood, searchProteinFoods } from "@/lib/domain/protein-foods";
 import { ScheduledMealItem, ScheduledMealSlot } from '@/lib/domain/meal-planner';
 import { Language } from '@/lib/domain/i18n';
 

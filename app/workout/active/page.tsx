@@ -1,33 +1,28 @@
 'use client';
 
-import React, { useState, useEffect, useRef, Suspense } from 'react';
+import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
   Check,
   Plus,
   Trash2,
   Clock,
-  Sparkles,
   Trophy,
   ArrowLeft,
-  ChevronRight,
   Flame,
-  CheckCircle2,
-  AlertCircle,
   ArrowRightLeft,
   Activity,
   ChevronDown,
   ChevronUp,
-} from 'lucide-react';
+} from "lucide-react";
 import { db } from '@/lib/db/dexie-db';
 import {
   Workout,
   WorkoutExercise,
   SetEntry,
   Exercise,
-  ExerciseHistory,
   MuscleGroup,
-} from '@/lib/db/schema';
+} from "@/lib/db/schema";
 import { SEED_EXERCISES } from '@/lib/db/seed-data';
 import { getLocalDateString } from '@/lib/domain/calendar-sync';
 import { generateAndSaveFocusWorkout } from '@/lib/domain/workout-generator';
@@ -36,8 +31,7 @@ import {
   calculateTotalVolume,
   evaluateProgression,
   checkPersonalRecords,
-  PRStatus,
-} from '@/lib/domain/progressive-overload';
+} from "@/lib/domain/progressive-overload";
 import { RestTimer } from '@/components/workout/RestTimer';
 import { Language, t } from '@/lib/domain/i18n';
 import { ExerciseIllustration } from '@/components/ui/ExerciseIllustration';

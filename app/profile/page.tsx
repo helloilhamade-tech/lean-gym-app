@@ -10,16 +10,13 @@ import {
   RotateCcw,
   Sparkles,
   Check,
-  Shield,
-  Smartphone,
   Save,
   Cloud,
   RefreshCw,
-  LogIn,
   LogOut,
   Mail,
   Lock,
-} from 'lucide-react';
+} from "lucide-react";
 import { db, initializeDatabaseWithSeedData, resetDatabaseToFresh } from '@/lib/db/dexie-db';
 import { Profile, Goal } from '@/lib/db/schema';
 import { Language, t } from '@/lib/domain/i18n';

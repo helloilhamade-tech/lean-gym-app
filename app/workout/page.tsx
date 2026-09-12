@@ -1,20 +1,19 @@
 'use client';
 
-import React, { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback } from "react";
 import { useRouter } from 'next/navigation';
 import {
   Dumbbell,
   Calendar,
   Clock,
   Flame,
-  Plus,
   ChevronRight,
   Sparkles,
   BookOpen,
   Edit3,
   Calendar as CalendarIcon,
   Sliders,
-} from 'lucide-react';
+} from "lucide-react";
 import { db } from '@/lib/db/dexie-db';
 import { Workout, Program, ExerciseHistory, Exercise } from '@/lib/db/schema';
 import { Language, t } from '@/lib/domain/i18n';

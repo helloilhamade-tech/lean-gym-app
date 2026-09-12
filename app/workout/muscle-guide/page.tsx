@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import { useState } from "react";
 import { useRouter } from 'next/navigation';
 import {
   ArrowLeft,
@@ -10,10 +10,7 @@ import {
   Check,
   Plus,
   Info,
-  Sparkles,
-  ChevronRight,
-  ShieldAlert,
-} from 'lucide-react';
+} from "lucide-react";
 import {
   MUSCLE_BREAKDOWN,
   EXERCISE_EQUIPMENT_GUIDE,

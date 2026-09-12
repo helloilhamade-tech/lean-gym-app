@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import { useState } from "react";
 import { useRouter } from 'next/navigation';
 import { X, Dumbbell, Utensils, Scale, Droplet } from 'lucide-react';
 import { Language, t } from '@/lib/domain/i18n';

@@ -1,5 +1,3 @@
-import { SetEntry, WorkoutExercise } from '@/lib/db/schema';
-
 export interface ExercisePerformanceHistory {
   exerciseId: string;
   bestWeightKg: number;

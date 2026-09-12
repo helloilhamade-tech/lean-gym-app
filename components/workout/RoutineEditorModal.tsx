@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { X, Plus, Trash2, Dumbbell, ArrowUp, ArrowDown, Check } from 'lucide-react';
+import { useState, useEffect } from "react";
+import { X, Plus, Trash2, Dumbbell, ArrowUp, ArrowDown } from "lucide-react";
 import { db } from '@/lib/db/dexie-db';
 import { Exercise, Workout, WorkoutExercise } from '@/lib/db/schema';
 

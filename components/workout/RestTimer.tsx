@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
-import { Play, Pause, Plus, Minus, X, Bell } from 'lucide-react';
+import { useEffect, useState } from "react";
+import { Play, Pause, X } from "lucide-react";
 
 interface RestTimerProps {
   initialSeconds?: number;

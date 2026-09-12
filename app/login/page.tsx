@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Mail, Lock, Sparkles, ArrowRight, ShieldCheck, Dumbbell, AlertCircle } from 'lucide-react';
+import { Mail, Lock, ArrowRight, ShieldCheck, Dumbbell, AlertCircle } from "lucide-react";
 import { useAuth } from '@/lib/firebase/auth-context';
 import { db } from '@/lib/db/dexie-db';
 

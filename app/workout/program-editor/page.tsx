@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from "react";
 import { useRouter } from 'next/navigation';
 import {
   ArrowLeft,
@@ -10,15 +10,14 @@ import {
   ArrowUp,
   ArrowDown,
   Check,
-  MoreVertical,
   ChevronDown,
   ChevronUp,
   Sparkles,
   Save,
   CheckCircle2,
-} from 'lucide-react';
+} from "lucide-react";
 import { db } from '@/lib/db/dexie-db';
-import { Program, Exercise, Workout, WorkoutExercise, SetEntry } from '@/lib/db/schema';
+import { Program, Exercise } from "@/lib/db/schema";
 import { ExerciseIllustration } from '@/components/ui/ExerciseIllustration';
 import { ExerciseSwapModal } from '@/components/workout/ExerciseSwapModal';
 

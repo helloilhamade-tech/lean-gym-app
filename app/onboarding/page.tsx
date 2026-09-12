@@ -1,17 +1,14 @@
 'use client';
 
-import React, { useState } from 'react';
+import { useState } from "react";
 import { useRouter } from 'next/navigation';
 import {
   ChevronRight,
   ArrowLeft,
-  Flame,
-  Dumbbell,
-  Scale,
   Sparkles,
   Check,
   ShieldCheck,
-} from 'lucide-react';
+} from "lucide-react";
 import { db } from '@/lib/db/dexie-db';
 import {
   Profile,
@@ -22,8 +19,7 @@ import {
   SplitType,
   Workout,
   WorkoutExercise,
-  SetEntry,
-} from '@/lib/db/schema';
+} from "@/lib/db/schema";
 import { calculateNutritionTargets } from '@/lib/domain/nutrition';
 import { SEED_EXERCISES } from '@/lib/db/seed-data';
 import { useAuth } from '@/lib/firebase/auth-context';

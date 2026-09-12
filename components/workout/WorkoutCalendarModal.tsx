@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from "react";
 import { useRouter } from 'next/navigation';
 import {
   X,
@@ -8,16 +8,13 @@ import {
   ChevronLeft,
   ChevronRight,
   Dumbbell,
-  CheckCircle2,
   Clock,
   Download,
   ExternalLink,
   Plus,
-  Sparkles,
-  Share2,
-} from 'lucide-react';
+} from "lucide-react";
 import { db } from '@/lib/db/dexie-db';
-import { Workout, WorkoutExercise, Exercise } from '@/lib/db/schema';
+import { Workout, Exercise } from "@/lib/db/schema";
 import {
   generateGoogleCalendarUrl,
   downloadICSFile,

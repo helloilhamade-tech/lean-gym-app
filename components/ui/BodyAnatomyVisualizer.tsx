@@ -1,6 +1,5 @@
 'use client';
 
-import React from 'react';
 import { MuscleGroup } from '@/lib/db/schema';
 
 interface BodyAnatomyVisualizerProps {

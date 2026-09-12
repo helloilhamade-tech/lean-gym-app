@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
-import { X, Plus, Dumbbell } from 'lucide-react';
+import { useState } from "react";
+import { X, Dumbbell } from "lucide-react";
 import { db } from '@/lib/db/dexie-db';
 import { Exercise, MuscleGroup, Equipment, MovementPattern } from '@/lib/db/schema';
 

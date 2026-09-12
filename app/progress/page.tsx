@@ -2,18 +2,15 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-  TrendingDown,
   Scale,
   Camera,
-  Plus,
   ArrowDownRight,
   Calendar,
-  Sparkles,
   Info,
   Trash2,
   Percent,
   Activity,
-} from 'lucide-react';
+} from "lucide-react";
 import { db } from '@/lib/db/dexie-db';
 import { Measurement, Goal, Profile } from '@/lib/db/schema';
 import { calculate7DayWeightAverage } from '@/lib/domain/recommendations';

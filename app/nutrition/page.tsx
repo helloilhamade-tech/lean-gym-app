@@ -1,27 +1,22 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from "react";
 import {
-  Flame,
   Plus,
   Droplet,
   Search,
   Check,
-  Bookmark,
   Trash2,
   Utensils,
-  ChevronRight,
-  Info,
   Calendar,
   RotateCcw,
-  Sliders,
   Sparkles,
   Clock,
   RefreshCw,
   Zap,
   TrendingDown,
   TrendingUp,
-} from 'lucide-react';
+} from "lucide-react";
 import { db } from '@/lib/db/dexie-db';
 import { Food, Meal, Goal, DailyLog, MealType, Profile } from '@/lib/db/schema';
 import { calculateMacroSummary } from '@/lib/domain/nutrition';

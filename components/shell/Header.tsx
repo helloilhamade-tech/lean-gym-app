@@ -1,6 +1,5 @@
 'use client';
 
-import React from 'react';
 import Link from 'next/link';
 import { User, Globe } from 'lucide-react';
 import { Language } from '@/lib/domain/i18n';

@@ -1,9 +1,9 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { X, RefreshCw, Sparkles, Check, ArrowRightLeft } from 'lucide-react';
+import { useState, useEffect } from "react";
+import { X, ArrowRightLeft } from "lucide-react";
 import { db } from '@/lib/db/dexie-db';
-import { Exercise, WorkoutExercise } from '@/lib/db/schema';
+import { Exercise } from "@/lib/db/schema";
 import { ExerciseIllustration } from '@/components/ui/ExerciseIllustration';
 
 interface ExerciseSwapModalProps {

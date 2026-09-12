@@ -3,8 +3,7 @@ import {
   doc,
   setDoc,
   getDocs,
-  writeBatch,
-} from 'firebase/firestore';
+} from "firebase/firestore";
 import { firestore, isFirebaseConfigured } from './config';
 import { db } from '@/lib/db/dexie-db';
 import { Workout, SetEntry, Measurement, Meal, WorkoutExercise } from '@/lib/db/schema';

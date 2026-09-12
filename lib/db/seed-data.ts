@@ -5,15 +5,12 @@ import {
   Workout,
   Exercise,
   WorkoutExercise,
-  SetEntry,
   ExerciseHistory,
   Food,
   Meal,
-  MealItem,
-  MealTemplate,
   Measurement,
   DailyLog,
-} from './schema';
+} from "./schema";
 
 export const SEED_EXERCISES: Exercise[] = [
   // CHEST

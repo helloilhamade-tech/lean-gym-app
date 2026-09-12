@@ -1,32 +1,23 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from "react";
 import {
   X,
   Percent,
   Check,
   Sparkles,
-  Info,
-  Scale,
-  Ruler,
   Calculator,
-  ShieldCheck,
-  Flame,
-  ArrowRight,
-  TrendingDown,
-  Activity,
-} from 'lucide-react';
+} from "lucide-react";
 import { db } from '@/lib/db/dexie-db';
 import { Profile, Measurement } from '@/lib/db/schema';
 import {
   Gender,
   calculateNavyBodyFat,
   calculateBmiBodyFat,
-  classifyBodyFat,
   calculateBodyComposition,
   getCategoryThresholds,
   BodyCompositionResult,
-} from '@/lib/domain/body-fat';
+} from "@/lib/domain/body-fat";
 import { Language } from '@/lib/domain/i18n';
 
 interface BodyFatModalProps {

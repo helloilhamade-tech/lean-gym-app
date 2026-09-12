@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback } from "react";
 import { useRouter } from 'next/navigation';
 import {
   Dumbbell,
@@ -10,15 +10,12 @@ import {
   ArrowDownRight,
   ArrowUpRight,
   Minus,
-  CheckCircle2,
   Clock,
   ChevronRight,
   ShieldCheck,
-  AlertCircle,
   Calendar as CalendarIcon,
   Sliders,
-  RefreshCw,
-} from 'lucide-react';
+} from "lucide-react";
 import { db } from '@/lib/db/dexie-db';
 import { Profile, Goal, Workout, DailyLog, Meal, Recommendation } from '@/lib/db/schema';
 import { calculate7DayWeightAverage, generateDailyRecommendations } from '@/lib/domain/recommendations';
