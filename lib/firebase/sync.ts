@@ -21,14 +21,14 @@ export interface SyncResult {
  * Upload local Dexie changes to Cloud Firestore
  */
 export async function syncLocalToCloud(userId: string): Promise<SyncResult> {
-  if (!isFirebaseConfigured || !firestore || !userId || userId.startsWith('guest-')) {
+  if (!isFirebaseConfigured || !firestore || !userId) {
     return {
       success: false,
       syncedWorkouts: 0,
       syncedSets: 0,
       syncedMeasurements: 0,
       syncedMeals: 0,
-      error: userId?.startsWith('guest-') ? 'Mode Tamu (Lokal)' : 'Firebase not configured or user not authenticated',
+      error: 'Firebase not configured or user not authenticated',
     };
   }
 
@@ -93,14 +93,14 @@ export async function syncLocalToCloud(userId: string): Promise<SyncResult> {
  * Download remote Cloud Firestore data and merge into local Dexie
  */
 export async function syncCloudToLocal(userId: string): Promise<SyncResult> {
-  if (!isFirebaseConfigured || !firestore || !userId || userId.startsWith('guest-')) {
+  if (!isFirebaseConfigured || !firestore || !userId) {
     return {
       success: false,
       syncedWorkouts: 0,
       syncedSets: 0,
       syncedMeasurements: 0,
       syncedMeals: 0,
-      error: userId?.startsWith('guest-') ? 'Mode Tamu (Lokal)' : 'Firebase not configured or user not authenticated',
+      error: 'Firebase not configured or user not authenticated',
     };
   }
 

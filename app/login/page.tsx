@@ -9,7 +9,6 @@ import {
   ShieldCheck,
   Dumbbell,
   AlertCircle,
-  UserCheck,
   ExternalLink,
   HelpCircle,
 } from 'lucide-react';
@@ -127,7 +126,7 @@ function getFriendlyAuthError(err: any): AuthErrorInfo {
 
 export default function LoginPage() {
   const router = useRouter();
-  const { user, loading, signInWithGoogle, signInWithGoogleRedirect, signInWithEmail, signUpWithEmail, signInAsGuest } = useAuth();
+  const { user, loading, signInWithGoogle, signInWithGoogleRedirect, signInWithEmail, signUpWithEmail } = useAuth();
 
   const [mode, setMode] = useState<'signin' | 'signup'>('signin');
   const [email, setEmail] = useState('');
@@ -218,22 +217,6 @@ export default function LoginPage() {
     }
   };
 
-  const handleGuestSignIn = async () => {
-    setErrorInfo(null);
-    setIsSubmitting(true);
-    try {
-      signInAsGuest();
-      const profile = await db.profiles.toCollection().first();
-      if (profile) {
-        router.replace('/today');
-      } else {
-        router.replace('/onboarding');
-      }
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
   return (
     <div className="min-h-[85vh] flex flex-col justify-between py-6 px-2 animate-in fade-in duration-200">
       {/* 1. Brand & Header */}
@@ -253,7 +236,7 @@ export default function LoginPage() {
         </div>
 
         <p className="text-xs text-slate-300 max-w-xs mx-auto leading-relaxed pt-1">
-          Silakan masuk menggunakan akun <strong>Google (Gmail)</strong> atau <strong>Mode Tamu</strong> untuk membuka seluruh fitur latihan, rekomendasi nutrisi, dan tracking gym Anda.
+          Silakan masuk menggunakan akun <strong>Google (Gmail)</strong> atau <strong>Email</strong> untuk membuka seluruh fitur latihan, rekomendasi nutrisi, dan tracking gym Anda.
         </p>
       </div>
 
@@ -308,22 +291,13 @@ export default function LoginPage() {
                   </li>
                 </ol>
 
-                <div className="pt-2 flex flex-col gap-2">
+                <div className="pt-2">
                   <button
                     type="button"
                     onClick={handleGoogleRedirectSignIn}
                     className="w-full py-2 px-3 rounded-xl bg-card hover:bg-surfaceBorder border border-surfaceBorder text-white font-bold text-xs flex items-center justify-center gap-1.5 active:scale-95 transition-all"
                   >
                     <span>Coba Google via Redirect (Halaman Penuh)</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={handleGuestSignIn}
-                    className="w-full py-2 px-3 rounded-xl bg-primary text-black font-bold text-xs flex items-center justify-center gap-1.5 active:scale-95 transition-all shadow-md shadow-primary/20"
-                  >
-                    <UserCheck className="w-3.5 h-3.5" />
-                    <span>Masuk Mode Tamu Sekarang (Tanpa Setup)</span>
                   </button>
                 </div>
               </div>
@@ -347,22 +321,6 @@ export default function LoginPage() {
             )}
           </div>
         )}
-
-        {/* Guest Mode Direct Access */}
-        <div className="pt-1">
-          <button
-            type="button"
-            onClick={handleGuestSignIn}
-            disabled={isSubmitting}
-            className="w-full py-3 px-4 rounded-2xl bg-card hover:bg-surfaceBorder border border-surfaceBorder text-slate-200 hover:text-white font-bold text-xs flex items-center justify-center gap-2 active:scale-98 transition-all disabled:opacity-50 shadow-sm"
-          >
-            <UserCheck className="w-4 h-4 text-emerald-400" />
-            <span>Masuk Mode Tamu / Demo (Offline)</span>
-          </button>
-          <p className="text-[10px] text-mutedText text-center mt-1">
-            Gunakan seluruh fitur secara instan tanpa login Firebase
-          </p>
-        </div>
 
         <div className="flex items-center gap-3 pt-2">
           <div className="flex-1 h-[1px] bg-surfaceBorder"></div>
