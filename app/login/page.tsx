@@ -20,6 +20,7 @@ interface AuthErrorInfo {
   title: string;
   description: string;
   isFirebaseConfigIssue?: boolean;
+  rawDetails?: string;
 }
 
 function getFriendlyAuthError(err: any): AuthErrorInfo {
@@ -32,6 +33,7 @@ function getFriendlyAuthError(err: any): AuthErrorInfo {
 
   const code = String(err.code || '');
   const message = String(err.message || '').toLowerCase();
+  const rawDetails = `Code: ${err.code || 'N/A'} | Error: ${err.name || 'Error'}: ${err.message || String(err)}`;
 
   // Internal error or operation not allowed -> Firebase Console config
   if (
@@ -42,10 +44,11 @@ function getFriendlyAuthError(err: any): AuthErrorInfo {
     message.includes('internal error')
   ) {
     return {
-      title: 'Google Sign-In Belum Diaktifkan di Firebase Console',
+      title: 'Autentikasi Google Belum Dapat Terhubung',
       description:
-        'Metode autentikasi Google belum diaktifkan (Enable) di Firebase Console atau Project Support Email belum dipilih.',
+        'Firebase menolak koneksi Google Auth. Hal ini umumnya terjadi karena domain web belum didaftarkan di Authorized Domains, Support Email belum disimpan, atau browser memblokir penyimpanan cross-domain.',
       isFirebaseConfigIssue: true,
+      rawDetails,
     };
   }
 
@@ -55,13 +58,15 @@ function getFriendlyAuthError(err: any): AuthErrorInfo {
       description:
         'Domain web ini belum ditambahkan ke Firebase Console > Authentication > Settings > Authorized domains.',
       isFirebaseConfigIssue: true,
+      rawDetails,
     };
   }
 
   if (code === 'auth/popup-blocked') {
     return {
       title: 'Pop-up Diblokir Browser',
-      description: 'Browser Anda memblokir jendela popup Google. Harap izinkan pop-up untuk situs ini.',
+      description: 'Browser Anda memblokir jendela popup Google. Coba gunakan metode Redirect (halaman penuh) di bawah.',
+      rawDetails,
     };
   }
 
@@ -69,6 +74,7 @@ function getFriendlyAuthError(err: any): AuthErrorInfo {
     return {
       title: 'Login Dibatalkan',
       description: 'Jendela login ditutup sebelum proses verifikasi selesai.',
+      rawDetails,
     };
   }
 
@@ -76,6 +82,7 @@ function getFriendlyAuthError(err: any): AuthErrorInfo {
     return {
       title: 'Email atau Kata Sandi Salah',
       description: 'Kombinasi email dan kata sandi yang Anda masukkan tidak cocok.',
+      rawDetails,
     };
   }
 
@@ -83,6 +90,7 @@ function getFriendlyAuthError(err: any): AuthErrorInfo {
     return {
       title: 'Akun Belum Terdaftar',
       description: 'Email ini belum terdaftar. Silakan pilih tab "Daftar Baru" untuk membuat akun.',
+      rawDetails,
     };
   }
 
@@ -90,6 +98,7 @@ function getFriendlyAuthError(err: any): AuthErrorInfo {
     return {
       title: 'Email Sudah Digunakan',
       description: 'Email ini sudah memiliki akun. Silakan langsung masuk di tab "Masuk".',
+      rawDetails,
     };
   }
 
@@ -97,6 +106,7 @@ function getFriendlyAuthError(err: any): AuthErrorInfo {
     return {
       title: 'Password Terlalu Pendek',
       description: 'Kata sandi minimal harus terdiri dari 6 karakter.',
+      rawDetails,
     };
   }
 
@@ -104,23 +114,26 @@ function getFriendlyAuthError(err: any): AuthErrorInfo {
     return {
       title: 'Gangguan Koneksi Jaringan',
       description: 'Gagal terhubung ke server Firebase. Periksa koneksi internet Anda.',
+      rawDetails,
     };
   }
 
   return {
     title: 'Gagal Masuk',
     description: err.message || 'Terjadi kesalahan saat proses autentikasi.',
+    rawDetails,
   };
 }
 
 export default function LoginPage() {
   const router = useRouter();
-  const { user, loading, signInWithGoogle, signInWithEmail, signUpWithEmail, signInAsGuest } = useAuth();
+  const { user, loading, signInWithGoogle, signInWithGoogleRedirect, signInWithEmail, signUpWithEmail, signInAsGuest } = useAuth();
 
   const [mode, setMode] = useState<'signin' | 'signup'>('signin');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [errorInfo, setErrorInfo] = useState<AuthErrorInfo | null>(null);
+  const [showRawDetails, setShowRawDetails] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // If already logged in, route to today or onboarding
@@ -190,6 +203,17 @@ export default function LoginPage() {
         setErrorInfo(getFriendlyAuthError(err));
       }
     } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleGoogleRedirectSignIn = async () => {
+    setErrorInfo(null);
+    setIsSubmitting(true);
+    try {
+      await signInWithGoogleRedirect();
+    } catch (err: any) {
+      setErrorInfo(getFriendlyAuthError(err));
       setIsSubmitting(false);
     }
   };
@@ -271,21 +295,54 @@ export default function LoginPage() {
 
             {errorInfo.isFirebaseConfigIssue && (
               <div className="mt-2 pt-2 border-t border-rose-500/20 pl-6 space-y-2">
-                <p className="text-[11px] font-semibold text-white">Cara Mengaktifkan di Firebase Console:</p>
-                <ol className="text-[11px] text-slate-300 space-y-1 list-decimal list-inside">
-                  <li>Buka <strong>Firebase Console</strong> &gt; Proyek Anda</li>
-                  <li>Buka menu <strong>Authentication</strong> &gt; tab <strong>Sign-in method</strong></li>
-                  <li>Klik <strong>Google</strong> &gt; ubah status menjadi <strong>Enable</strong></li>
-                  <li>Pilih <strong>Project support email</strong> &gt; klik <strong>Save</strong></li>
+                <p className="text-[11px] font-semibold text-white">3 Hal yang Perlu Diperiksa di Firebase Console:</p>
+                <ol className="text-[11px] text-slate-300 space-y-1.5 list-decimal list-inside">
+                  <li>
+                    <strong>Authorized Domains (Paling Penting):</strong> Buka <em>Authentication</em> &gt; tab <em>Settings</em> &gt; <em>Authorized domains</em> &gt; Tambahkan domain web Anda (misal <code>lean-gym-app.vercel.app</code> atau <code>127.0.0.1</code>).
+                  </li>
+                  <li>
+                    <strong>Support Email:</strong> Buka tab <em>Sign-in method</em> &gt; <em>Google</em> &gt; Pastikan kolom <em>Project support email</em> dipilih, lalu klik <strong>Save</strong>.
+                  </li>
+                  <li>
+                    <strong>Cookies &amp; Pop-up:</strong> Jika di browser Brave / Chrome Incognito, matikan Shields atau izinkan 3rd-party cookies untuk Google Auth.
+                  </li>
                 </ol>
+
+                <div className="pt-2 flex flex-col gap-2">
+                  <button
+                    type="button"
+                    onClick={handleGoogleRedirectSignIn}
+                    className="w-full py-2 px-3 rounded-xl bg-card hover:bg-surfaceBorder border border-surfaceBorder text-white font-bold text-xs flex items-center justify-center gap-1.5 active:scale-95 transition-all"
+                  >
+                    <span>Coba Google via Redirect (Halaman Penuh)</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleGuestSignIn}
+                    className="w-full py-2 px-3 rounded-xl bg-primary text-black font-bold text-xs flex items-center justify-center gap-1.5 active:scale-95 transition-all shadow-md shadow-primary/20"
+                  >
+                    <UserCheck className="w-3.5 h-3.5" />
+                    <span>Masuk Mode Tamu Sekarang (Tanpa Setup)</span>
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {errorInfo.rawDetails && (
+              <div className="pt-1 pl-6">
                 <button
                   type="button"
-                  onClick={handleGuestSignIn}
-                  className="w-full mt-2 py-2 px-3 rounded-xl bg-primary text-black font-bold text-xs flex items-center justify-center gap-1.5 active:scale-95 transition-all shadow-md shadow-primary/20"
+                  onClick={() => setShowRawDetails(!showRawDetails)}
+                  className="text-[10px] text-slate-400 hover:text-white underline decoration-dotted"
                 >
-                  <UserCheck className="w-3.5 h-3.5" />
-                  <span>Masuk Mode Tamu Sekarang (Tanpa Setup)</span>
+                  {showRawDetails ? 'Sembunyikan detail teknis' : 'Lihat detail teknis error'}
                 </button>
+                {showRawDetails && (
+                  <pre className="mt-1 p-2 rounded-lg bg-black/50 border border-surfaceBorder text-[10px] text-rose-200 overflow-x-auto whitespace-pre-wrap font-mono">
+                    {errorInfo.rawDetails}
+                  </pre>
+                )}
               </div>
             )}
           </div>

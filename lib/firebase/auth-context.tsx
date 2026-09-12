@@ -5,6 +5,8 @@ import {
   User,
   onAuthStateChanged,
   signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   signOut,
@@ -27,6 +29,7 @@ interface AuthContextType {
   isConfigured: boolean;
   isGuest: boolean;
   signInWithGoogle: () => Promise<void>;
+  signInWithGoogleRedirect: () => Promise<void>;
   signInWithEmail: (email: string, pass: string) => Promise<void>;
   signUpWithEmail: (email: string, pass: string) => Promise<void>;
   signInAsGuest: () => void;
@@ -47,6 +50,7 @@ const AuthContext = createContext<AuthContextType>({
   isConfigured: false,
   isGuest: false,
   signInWithGoogle: async () => {},
+  signInWithGoogleRedirect: async () => {},
   signInWithEmail: async () => {},
   signUpWithEmail: async () => {},
   signInAsGuest: () => {},
@@ -69,6 +73,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setLoading(false);
       return;
     }
+
+    // Check if user just returned from Google Redirect flow
+    getRedirectResult(auth)
+      .then(async (result) => {
+        if (result?.user) {
+          if (typeof window !== 'undefined') {
+            localStorage.removeItem('lean_guest_session');
+          }
+          setUser(result.user);
+          await syncCloudToLocal(result.user.uid);
+          await syncLocalToCloud(result.user.uid);
+        }
+      })
+      .catch((err) => {
+        console.warn('Redirect auth result warning:', err);
+      });
 
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       if (currentUser) {
@@ -97,6 +117,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signInWithGoogle = async () => {
     if (!auth) throw new Error('Firebase Auth not available');
     await signInWithPopup(auth, googleProvider);
+  };
+
+  const signInWithGoogleRedirect = async () => {
+    if (!auth) throw new Error('Firebase Auth not available');
+    await signInWithRedirect(auth, googleProvider);
   };
 
   const signInWithEmail = async (email: string, pass: string) => {
@@ -160,6 +185,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isConfigured: isFirebaseConfigured,
         isGuest,
         signInWithGoogle,
+        signInWithGoogleRedirect,
         signInWithEmail,
         signUpWithEmail,
         signInAsGuest,
